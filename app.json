@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Soccer League Orlando",
+    "slug": "soccer-league-orlando",
+    "scheme": "soccerleagueorlando",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#12235A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.soccerleagueorlando.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Used to upload a photo of the field when creating a game listing."
+      }
+    },
+    "android": {
+      "package": "com.soccerleagueorlando.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#12235A"
+      }
+    }
+  }
+}
