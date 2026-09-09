@@ -9,7 +9,9 @@
     "splash": {
       "backgroundColor": "#12235A"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.soccerleagueorlando.app",
@@ -22,6 +24,10 @@
       "adaptiveIcon": {
         "backgroundColor": "#12235A"
       }
-    }
+    },
+    "plugins": [
+      "expo-status-bar",
+      "expo-web-browser"
+    ]
   }
 }
