@@ -58,7 +58,9 @@ const ICONS = { Games: "⚽", Bookings: "📅", Messages: "💬", Admin: "🛡�
 
 function MainTabs() {
   const { conversations } = useApp();
+  const { profile } = useAuth();
   const hasUnread = conversations.some((c) => c.unread);
+  const isAdmin = !!(profile?.is_admin || profile?.is_super_admin);
 
   return (
     <Tab.Navigator
@@ -75,7 +77,7 @@ function MainTabs() {
       <Tab.Screen name="Games" component={GamesStackScreen} />
       <Tab.Screen name="Bookings" component={BookingsScreen} />
       <Tab.Screen name="Messages" component={MessagesStackScreen} />
-      <Tab.Screen name="Admin" component={AdminStackScreen} />
+      {isAdmin && <Tab.Screen name="Admin" component={AdminStackScreen} />}
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity, TextInput, StyleSheet, Switch, Alert, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Button, HeaderLogo } from "../components/Shared";
@@ -12,6 +13,8 @@ export default function AdminScreen({ navigation }) {
     games, users, features, toggleUserStatus, toggleFeature, addRosterPlayer, removeRosterPlayer, deleteGame,
     whatsappGroupUrl, setWhatsappGroupUrl,
   } = useApp();
+  const { profile } = useAuth();
+  const isSuperAdmin = !!profile?.is_super_admin;
   const [section, setSection] = useState("games");
   const [waInput, setWaInput] = useState(whatsappGroupUrl || "");
   const [accounts, setAccounts] = useState([]);
@@ -74,7 +77,7 @@ export default function AdminScreen({ navigation }) {
         </View>
         <Text style={styles.sub}>Manage games, users and platform features</Text>
         <View style={styles.segment}>
-          {["games", "users", "waivers", "features"].map((s) => (
+          {["games", "users", "waivers", ...(isSuperAdmin ? ["features"] : [])].map((s) => (
             <TouchableOpacity key={s} style={[styles.segBtn, section === s && styles.segBtnActive]} onPress={() => setSection(s)}>
               <Text style={[styles.segText, section === s && styles.segTextActive]}>{s[0].toUpperCase() + s.slice(1)}</Text>
             </TouchableOpacity>
@@ -224,7 +227,7 @@ export default function AdminScreen({ navigation }) {
           </View>
         )}
 
-        {section === "features" && (
+        {section === "features" && isSuperAdmin && (
           <View style={styles.waEditCard}>
             <Text style={styles.rosterTitle}>WhatsApp announcements group</Text>
             <Text style={styles.rosterSub}>Shown as a banner on every player's Messages tab</Text>
@@ -244,7 +247,7 @@ export default function AdminScreen({ navigation }) {
             />
           </View>
         )}
-        {section === "features" && features.map((f) => (
+        {section === "features" && isSuperAdmin && features.map((f) => (
           <View key={f.id} style={[styles.featureRow, !f.enabled && { opacity: 0.5 }]}>
             <View style={styles.featureIc}><Text style={{ fontSize: 17 }}>{f.icon}</Text></View>
             <View style={{ flex: 1, marginLeft: 12 }}>
