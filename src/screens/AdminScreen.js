@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, Image, ScrollView, TouchableOpacity, TextInput, StyleSheet, Switch, Alert, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
+import { supabase } from "../lib/supabase";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Button, HeaderLogo } from "../components/Shared";
 import { ROSTER_CONFIG } from "../data/seedData";
@@ -13,8 +14,45 @@ export default function AdminScreen({ navigation }) {
   } = useApp();
   const [section, setSection] = useState("games");
   const [waInput, setWaInput] = useState(whatsappGroupUrl || "");
+  const [accounts, setAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [overridingId, setOverridingId] = useState(null);
   const activeUsers = users.filter((u) => u.status === "active").length;
   const enabledFeatures = features.filter((f) => f.enabled).length;
+
+  const loadAccounts = useCallback(async () => {
+    setLoadingAccounts(true);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, name, waiver_accepted, waiver_accepted_at, created_at")
+      .order("created_at", { ascending: false });
+    setLoadingAccounts(false);
+    if (!error) setAccounts(data);
+  }, []);
+
+  useEffect(() => {
+    if (section === "waivers") loadAccounts();
+  }, [section, loadAccounts]);
+
+  const overrideWaiver = (account) => {
+    Alert.alert(
+      "Mark waiver as accepted?",
+      `Only do this if ${account.name} actually signed a waiver outside the app (e.g. on paper at the field).`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm",
+          onPress: async () => {
+            setOverridingId(account.id);
+            const { error } = await supabase.rpc("admin_accept_waiver", { target_user_id: account.id });
+            setOverridingId(null);
+            if (error) Alert.alert("Couldn't update", error.message);
+            else loadAccounts();
+          },
+        },
+      ]
+    );
+  };
 
   const promptAddPlayer = (gameId, rosterDef) => {
     if (Platform.OS === "ios") {
@@ -36,7 +74,7 @@ export default function AdminScreen({ navigation }) {
         </View>
         <Text style={styles.sub}>Manage games, users and platform features</Text>
         <View style={styles.segment}>
-          {["games", "users", "features"].map((s) => (
+          {["games", "users", "waivers", "features"].map((s) => (
             <TouchableOpacity key={s} style={[styles.segBtn, section === s && styles.segBtnActive]} onPress={() => setSection(s)}>
               <Text style={[styles.segText, section === s && styles.segTextActive]}>{s[0].toUpperCase() + s.slice(1)}</Text>
             </TouchableOpacity>
@@ -152,6 +190,40 @@ export default function AdminScreen({ navigation }) {
           </View>
         ))}
 
+        {section === "waivers" && (
+          <View style={{ paddingHorizontal: spacing.lg, marginTop: 10 }}>
+            <Text style={styles.waiverNote}>
+              Real signed-in accounts and their Smartwaiver status. Use "Mark as accepted" only when someone
+              signed a waiver outside the app (paper form, etc.) — everyone else is confirmed automatically
+              by Smartwaiver once they sign in-app.
+            </Text>
+            {loadingAccounts && <Text style={{ color: colors.slate, marginTop: 10 }}>Loading...</Text>}
+            {!loadingAccounts && accounts.length === 0 && (
+              <Text style={{ color: colors.slate, marginTop: 10 }}>No accounts yet.</Text>
+            )}
+            {accounts.map((a) => (
+              <View key={a.id} style={styles.waiverRow}>
+                <Avatar name={a.name} size={38} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={{ fontWeight: "700" }}>{a.name}</Text>
+                  <Text style={{ fontSize: 11.5, color: a.waiver_accepted ? colors.turf : colors.warn, fontWeight: "600", marginTop: 2 }}>
+                    {a.waiver_accepted ? "✓ Waiver signed" : "Waiver not signed"}
+                  </Text>
+                </View>
+                {!a.waiver_accepted && (
+                  <Button
+                    title={overridingId === a.id ? "..." : "Mark as accepted"}
+                    variant="outline"
+                    disabled={overridingId === a.id}
+                    style={{ paddingHorizontal: 12, paddingVertical: 8 }}
+                    onPress={() => overrideWaiver(a)}
+                  />
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
         {section === "features" && (
           <View style={styles.waEditCard}>
             <Text style={styles.rosterTitle}>WhatsApp announcements group</Text>
@@ -238,5 +310,7 @@ const styles = StyleSheet.create({
   featureRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 10, padding: 14 },
   featureIc: { width: 38, height: 38, borderRadius: 10, backgroundColor: "#E9EEFC", alignItems: "center", justifyContent: "center" },
   waEditCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 10, padding: 14 },
+  waiverNote: { fontSize: 12, color: colors.slate, lineHeight: 17 },
+  waiverRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginTop: 10, padding: 12 },
   waInput: { marginTop: 10, backgroundColor: colors.chalk, borderWidth: 1.5, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: colors.ink },
 });
