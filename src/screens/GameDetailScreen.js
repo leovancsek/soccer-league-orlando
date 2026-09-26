@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, Image, ScrollView, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from "react-native";
+import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Badge, Button } from "../components/Shared";

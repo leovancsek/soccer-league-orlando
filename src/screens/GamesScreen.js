@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from "react-native";
+import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { TicketCard, Button } from "../components/Shared";

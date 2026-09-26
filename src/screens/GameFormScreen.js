@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Image, StyleSheet, SafeAreaView, Alert } from "react-native";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Image, StyleSheet, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
