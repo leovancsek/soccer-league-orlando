@@ -12,6 +12,7 @@ import MessagesScreen from "../screens/MessagesScreen";
 import ChatScreen from "../screens/ChatScreen";
 import AdminScreen from "../screens/AdminScreen";
 import GameFormScreen from "../screens/GameFormScreen";
+import SignWaiverScreen from "../screens/SignWaiverScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import LoginScreen from "../screens/auth/LoginScreen";
 import RegisterScreen from "../screens/auth/RegisterScreen";
@@ -32,6 +33,7 @@ function GamesStackScreen() {
     <GamesStack.Navigator screenOptions={{ headerShown: false }}>
       <GamesStack.Screen name="GamesList" component={GamesScreen} />
       <GamesStack.Screen name="GameDetail" component={GameDetailScreen} />
+      <GamesStack.Screen name="SignWaiver" component={SignWaiverScreen} />
     </GamesStack.Navigator>
   );
 }

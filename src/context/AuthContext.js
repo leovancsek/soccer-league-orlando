@@ -14,11 +14,25 @@ export function AuthProvider({ children }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const fetchProfile = async (userId) => {
+    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
+    if (!error) setProfile(data);
+    return { data, error };
+  };
+
   useEffect(() => {
     if (!session?.user) { setProfile(null); return; }
-    supabase.from("profiles").select("*").eq("id", session.user.id).single()
-      .then(({ data, error }) => { if (!error) setProfile(data); });
+    fetchProfile(session.user.id);
   }, [session?.user?.id]);
+
+  // Re-checks the profile row — used after the user returns from signing
+  // the Smartwaiver waiver, since only the smartwaiver-webhook Edge
+  // Function (server-side) ever flips waiver_accepted to true.
+  const refreshProfile = async () => {
+    if (!session?.user) return { error: "Not signed in." };
+    const { data, error } = await fetchProfile(session.user.id);
+    return error ? { error: error.message } : { data };
+  };
 
   // ---- Registration requirements: email, password (min 8 chars), full name ----
   const register = async ({ email, password, name }) => {
@@ -89,6 +103,7 @@ export function AuthProvider({ children }) {
     login,
     logout,
     updateProfile,
+    refreshProfile,
     requestPasswordReset,
     completePasswordReset,
   };

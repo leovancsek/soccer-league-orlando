@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Badge, Button } from "../components/Shared";
 import { ROSTER_CONFIG } from "../data/seedData";
@@ -9,6 +10,7 @@ import { ROSTER_CONFIG } from "../data/seedData";
 export default function GameDetailScreen({ route, navigation }) {
   const { gameId } = route.params;
   const { games, myBookings, initiatePayment, openOrCreateConversation } = useApp();
+  const { profile } = useAuth();
   const game = games.find((g) => g.id === gameId);
   const [paying, setPaying] = useState(false);
   if (!game) return null;
@@ -24,6 +26,10 @@ export default function GameDetailScreen({ route, navigation }) {
   };
 
   const handleBookAndPay = async () => {
+    if (!profile?.waiver_accepted) {
+      navigation.navigate("SignWaiver");
+      return;
+    }
     setPaying(true);
     const result = await initiatePayment(game);
     setPaying(false);
@@ -92,7 +98,11 @@ export default function GameDetailScreen({ route, navigation }) {
         ) : paying ? (
           <View style={{ width: "100%", alignItems: "center", paddingVertical: 14 }}><ActivityIndicator color={colors.turf} /></View>
         ) : (
-          <Button title={`Book this slot — pay ${game.price}`} onPress={handleBookAndPay} style={{ width: "100%" }} />
+          <Button
+            title={profile?.waiver_accepted ? `Book this slot — pay ${game.price}` : "Sign waiver to book"}
+            onPress={handleBookAndPay}
+            style={{ width: "100%" }}
+          />
         )}
       </View>
     </SafeAreaView>
