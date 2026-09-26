@@ -227,6 +227,7 @@ export default function AdminScreen({ navigation }) {
               Real signed-in accounts, their Smartwaiver status{isSuperAdmin ? ", and their role" : ""}.
               Use "Mark as accepted" only when someone signed a waiver outside the app (paper form, etc.) —
               everyone else is confirmed automatically by Smartwaiver once they sign in-app.
+              {isSuperAdmin ? " Super admin can't be granted from here, by policy — only removed." : ""}
             </Text>
             {loadingAccounts && <Text style={{ color: colors.slate, marginTop: 10 }}>Loading...</Text>}
             {!loadingAccounts && accounts.length === 0 && (
@@ -283,21 +284,13 @@ export default function AdminScreen({ navigation }) {
                           onPress={() => setRole(a, true, false, "Grant admin access")}
                         />
                       )}
-                      {a.is_super_admin ? (
+                      {a.is_super_admin && (
                         <Button
                           title="Remove super admin"
                           variant="danger"
                           disabled={busy}
                           style={styles.roleActionBtn}
                           onPress={() => setRole(a, true, false, "Remove super admin")}
-                        />
-                      ) : (
-                        <Button
-                          title="Make super admin"
-                          variant="turf"
-                          disabled={busy}
-                          style={styles.roleActionBtn}
-                          onPress={() => setRole(a, true, true, "Grant super admin access")}
                         />
                       )}
                     </View>
