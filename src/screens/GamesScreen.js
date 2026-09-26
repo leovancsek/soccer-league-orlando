@@ -21,11 +21,6 @@ export default function GamesScreen({ navigation }) {
   const dayOf = (game) => game.date.slice(0, 3);
   const dayKey = { Mon: "mon", Tue: "tue", Wed: "wed", Thu: "thu", Fri: "fri", Sat: "sat", Sun: "sun" };
 
-  const availableDays = useMemo(() => {
-    const present = new Set(games.map(dayOf));
-    return WEEK_ORDER.filter((d) => present.has(d));
-  }, [games]);
-
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return games.filter((g) => {
@@ -64,7 +59,7 @@ export default function GamesScreen({ navigation }) {
         >
           <Text style={[styles.chipText, filter === "all" && styles.chipTextActive]}>{t("games.allDays")}</Text>
         </TouchableOpacity>
-        {availableDays.map((d) => (
+        {WEEK_ORDER.map((d) => (
           <TouchableOpacity
             key={d}
             onPress={() => { setFilter(d); setVisible(PAGE_SIZE); }}

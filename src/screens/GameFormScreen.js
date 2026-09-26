@@ -1,13 +1,35 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Image, StyleSheet, Alert } from "react-native";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Image, StyleSheet, Alert, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { Button } from "../components/Shared";
 
-const FORMATS = ["5v5", "7v7", "11v11"];
-const LEVELS = ["Beginner friendly", "Intermediate", "Advanced", "All levels"];
+const FORMATS = ["5v5", "7v7", "9v9", "11v11"];
+// Skill level is temporarily hidden from this form — kept in state/save
+// payload (defaulted) so nothing downstream that reads game.level breaks.
+// const LEVELS = ["Beginner friendly", "Intermediate", "Advanced", "All levels"];
+
+const WEEKDAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_ABBR = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Formats a Date as "Wed, Sep 3" — the exact shape the rest of the app
+// expects in game.date (GamesScreen's day filter reads the first 3
+// letters), independent of the device's locale/language setting.
+function formatGameDate(d) {
+  return `${WEEKDAY_ABBR[d.getDay()]}, ${MONTH_ABBR[d.getMonth()]} ${d.getDate()}`;
+}
+
+// Existing games only store a "Weekday, Mon DD" string with no year, so
+// this is a best-effort parse (assumes the current year) — good enough to
+// pre-fill the picker when editing; if it fails we just default to today.
+function parseExistingDate(dateStr) {
+  if (!dateStr) return new Date();
+  const parsed = new Date(`${dateStr.split(",")[1]?.trim()}, ${new Date().getFullYear()}`);
+  return isNaN(parsed.getTime()) ? new Date() : parsed;
+}
 
 export default function GameFormScreen({ route, navigation }) {
   const { gameId } = route.params || {};
@@ -20,11 +42,12 @@ export default function GameFormScreen({ route, navigation }) {
   const [format, setFormat] = useState(existing?.format || "5v5");
   const [venue, setVenue] = useState(existing?.venue || "");
   const [address, setAddress] = useState(existing?.address || "");
-  const [date, setDate] = useState(existing?.date || "");
+  const [dateObj, setDateObj] = useState(parseExistingDate(existing?.date));
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [time, setTime] = useState(existing?.time || "");
   const [price, setPrice] = useState(existing?.price || "");
   const [slots, setSlots] = useState(String(existing?.spotsTotal || 10));
-  const [level, setLevel] = useState(existing?.level || "Intermediate");
+  const [level] = useState(existing?.level || "Intermediate");
 
   const [dropInFee, setDropInFee] = useState(existing?.pricing?.dropInFee || "");
   const [monthlyFee, setMonthlyFee] = useState(existing?.pricing?.monthlyFee || "");
@@ -48,10 +71,11 @@ export default function GameFormScreen({ route, navigation }) {
   };
 
   const handleSave = () => {
-    if (!title.trim() || !venue.trim() || !date.trim() || !time.trim()) {
-      Alert.alert("Missing info", "Please fill in title, venue, date and time.");
+    if (!title.trim() || !venue.trim() || !time.trim()) {
+      Alert.alert("Missing info", "Please fill in title, venue, and time.");
       return;
     }
+    const date = formatGameDate(dateObj);
     const dayShort = date.slice(0, 3).toUpperCase();
     const pricing = listingType === "league"
       ? { ...(existing?.pricing || {}), leagueFee: leagueFee || "$0", subFee: subFee || "$0" }
@@ -59,11 +83,16 @@ export default function GameFormScreen({ route, navigation }) {
 
     saveGame(gameId, {
       title: title.trim(), format, venue: venue.trim(), address: address.trim(),
-      date: date.trim(), day: dayShort, time: time.trim(), price: price.trim() || "$0",
+      date, day: dayShort, time: time.trim(), price: price.trim() || "$0",
       spotsTotal: Math.max(1, parseInt(slots) || 10, existing?.spotsFilled || 0),
       level, listingType, pricing, image,
     });
     navigation.goBack();
+  };
+
+  const onDateChange = (event, selected) => {
+    setShowDatePicker(Platform.OS === "ios");
+    if (selected) setDateObj(selected);
   };
 
   return (
@@ -106,21 +135,28 @@ export default function GameFormScreen({ route, navigation }) {
         <Field label="Venue name" value={venue} onChangeText={setVenue} placeholder="e.g. Blanchard Park Fields" />
         <Field label="Address" value={address} onChangeText={setAddress} placeholder="Street, Orlando" />
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Date" value={date} onChangeText={setDate} placeholder="e.g. Tue, Sep 2" style={{ flex: 1 }} />
+          <View style={{ flex: 1, marginBottom: 16 }}>
+            <FieldLabel>Date</FieldLabel>
+            <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
+              <Text style={{ color: colors.ink, fontSize: 14 }}>{formatGameDate(dateObj)}</Text>
+            </TouchableOpacity>
+          </View>
           <Field label="Time" value={time} onChangeText={setTime} placeholder="e.g. 19:00" style={{ flex: 1 }} />
         </View>
+        {showDatePicker && (
+          <DateTimePicker
+            value={dateObj}
+            mode="date"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={onDateChange}
+          />
+        )}
+        {showDatePicker && Platform.OS === "ios" && (
+          <Button title="Done" variant="outline" style={{ marginBottom: 16 }} onPress={() => setShowDatePicker(false)} />
+        )}
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Field label="Display price" value={price} onChangeText={setPrice} placeholder="e.g. $15" style={{ flex: 1 }} />
           <Field label="Total slots" value={slots} onChangeText={setSlots} keyboardType="number-pad" style={{ flex: 1 }} />
-        </View>
-
-        <FieldLabel>Skill level</FieldLabel>
-        <View style={styles.typeToggle}>
-          {LEVELS.map((l) => (
-            <TouchableOpacity key={l} style={[styles.levelBtn, level === l && styles.typeBtnActive]} onPress={() => setLevel(l)}>
-              <Text style={[styles.typeBtnText, { fontSize: 11 }, level === l && styles.typeBtnTextActive]}>{l}</Text>
-            </TouchableOpacity>
-          ))}
         </View>
 
         <View style={styles.pricingCard}>
