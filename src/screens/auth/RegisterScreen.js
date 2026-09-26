@@ -37,7 +37,7 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
-    <AuthBackground logoSize={72}>
+    <AuthBackground logoHeight={80}>
       <SafeAreaView style={{ flex: 1 }}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">

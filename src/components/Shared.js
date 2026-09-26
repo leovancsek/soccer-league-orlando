@@ -3,14 +3,21 @@ import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors, radius, spacing } from "../theme/theme";
 
+// The badge is portrait (not square) — this is its actual width/height
+// ratio, used everywhere it's displayed so it never gets squished.
+const LOGO_ASPECT = 326 / 400;
+
 // Full-bleed blue gradient + centered logo, used behind all auth screens
 // (login/register/forgot/reset) — the app's main tabs use the dark navy
 // theme instead (see theme.js), this gradient is reserved for auth only.
-export function AuthBackground({ children, logoSize = 96 }) {
+export function AuthBackground({ children, logoHeight = 110 }) {
   return (
     <LinearGradient colors={[colors.turf, colors.pitch]} style={styles.authBg}>
       <View style={styles.authLogoWrap}>
-        <Image source={require("../../assets/logo-mark.png")} style={{ width: logoSize, height: logoSize }} />
+        <Image
+          source={require("../../assets/logo-mark.png")}
+          style={{ width: logoHeight * LOGO_ASPECT, height: logoHeight }}
+        />
       </View>
       {children}
     </LinearGradient>
@@ -25,7 +32,7 @@ export function HeaderLogo({ size = 30, style }) {
   return (
     <Image
       source={require("../../assets/logo-mark.png")}
-      style={[{ width: size, height: size }, style]}
+      style={[{ width: size * LOGO_ASPECT, height: size }, style]}
     />
   );
 }
