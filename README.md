@@ -59,12 +59,21 @@ npm install
    screen calls this function, gets back a Stripe Checkout URL, and opens it
    with `expo-web-browser`. On success, Stripe redirects back into the app
    via the `soccerleagueorlando://payment-success` deep link.
-4. **Important**: also set up a Stripe **webhook** (a second Edge Function,
-   `stripe-webhook`, listening for `checkout.session.completed`) to flip the
-   booking's status to `confirmed` server-side. The in-app redirect is a
-   nice UX signal, but shouldn't be trusted alone — a user can close the
-   browser before it fires, so the webhook is the actual source of truth for
-   "was this paid for." This function isn't scaffolded yet; happy to add it.
+4. **Important**: also deploy the Stripe **webhook** (`supabase/functions/stripe-webhook`,
+   listening for `checkout.session.completed` and `checkout.session.expired`)
+   to flip the booking's status to `confirmed`/`cancelled` server-side:
+   ```bash
+   supabase functions deploy stripe-webhook --no-verify-jwt
+   ```
+   Then in Stripe Dashboard → Developers → Webhooks, add an endpoint pointed
+   at the deployed function's URL, subscribed to those two events, and set
+   its signing secret:
+   ```bash
+   supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+   The in-app redirect is a nice UX signal, but shouldn't be trusted alone —
+   a user can close the browser before it fires, so the webhook is the
+   actual source of truth for "was this paid for."
 
 ## Run it
 
@@ -134,8 +143,9 @@ Then either:
 - Add real app icons and splash screens (`app.json` → `icon`, `splash.image`)
 - Finish wiring `AppContext` to Supabase tables (see note above) so game
   listings, bookings, and messages persist server-side
-- Deploy the Stripe `stripe-webhook` Edge Function to confirm bookings
-  server-side (don't rely on the in-app redirect alone)
+- Confirm the Stripe webhook endpoint (Dashboard → Developers → Webhooks) and
+  `STRIPE_WEBHOOK_SECRET` are set on the production Stripe account, not just
+  test mode
 - Add the Android "add player" modal mentioned above
 - In Supabase Auth settings, decide whether to require email confirmation
   before first login (recommended) and customize the reset-password email

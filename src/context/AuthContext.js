@@ -49,6 +49,21 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   };
 
+  // Persists edits (name, position, level, city, bio) to the signed-in
+  // user's row and refreshes local state so ProfileScreen reflects them.
+  const updateProfile = async (fields) => {
+    if (!session?.user) return { error: "Not signed in." };
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(fields)
+      .eq("id", session.user.id)
+      .select()
+      .single();
+    if (error) return { error: error.message };
+    setProfile(data);
+    return { data };
+  };
+
   // ---- Password auto-reset: sends a reset-link email via Supabase Auth ----
   const requestPasswordReset = async (email) => {
     const redirectTo = Linking.createURL("reset-password");
@@ -73,6 +88,7 @@ export function AuthProvider({ children }) {
     register,
     login,
     logout,
+    updateProfile,
     requestPasswordReset,
     completePasswordReset,
   };

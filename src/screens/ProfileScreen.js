@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
-import { useApp } from "../context/AppContext";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator, Alert } from "react-native";
+import { useAuth } from "../context/AuthContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Button } from "../components/Shared";
 
@@ -8,12 +8,29 @@ const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
 export default function ProfileScreen() {
-  const { profile, setProfile } = useApp();
+  const { profile, updateProfile, logout } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(profile);
 
+  if (!profile) {
+    return (
+      <SafeAreaView style={[styles.container, { alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={colors.turf} />
+      </SafeAreaView>
+    );
+  }
+
   const startEdit = () => { setForm(profile); setEditing(true); };
-  const save = () => { setProfile(form); setEditing(false); };
+  const save = async () => {
+    setSaving(true);
+    const { error } = await updateProfile({
+      name: form.name, position: form.position, level: form.level, city: form.city, bio: form.bio,
+    });
+    setSaving(false);
+    if (error) Alert.alert("Couldn't save changes", error);
+    else setEditing(false);
+  };
 
   if (editing) {
     return (
@@ -33,7 +50,7 @@ export default function ProfileScreen() {
             value={form.bio}
             onChangeText={(v) => setForm({ ...form, bio: v })}
           />
-          <Button title="Save changes" onPress={save} style={{ marginTop: 20 }} />
+          <Button title={saving ? "Saving..." : "Save changes"} disabled={saving} onPress={save} style={{ marginTop: 20 }} />
           <Button title="Cancel" variant="ghost" style={{ marginTop: 10 }} onPress={() => setEditing(false)} />
         </ScrollView>
       </SafeAreaView>
@@ -50,7 +67,7 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.subline}>{profile.position} · {profile.level} · {profile.city}</Text>
           <View style={styles.scoreboard}>
-            <Stat n={profile.gamesPlayed} l="Games" />
+            <Stat n={profile.games_played} l="Games" />
             <Stat n={profile.rating} l="Rating" />
             <Stat n={profile.wins} l="Wins" />
           </View>
@@ -61,6 +78,7 @@ export default function ProfileScreen() {
             <Text style={{ fontSize: 14, lineHeight: 20, color: colors.ink }}>{profile.bio}</Text>
           </View>
           <Button title="Edit profile" onPress={startEdit} />
+          <Button title="Log out" variant="ghost" style={{ marginTop: 10 }} onPress={logout} />
         </View>
       </ScrollView>
     </SafeAreaView>
