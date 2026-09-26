@@ -27,7 +27,7 @@ export default function AdminScreen({ navigation }) {
     setLoadingAccounts(true);
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, name, waiver_accepted, waiver_accepted_at, created_at")
+      .select("id, name, waiver_accepted, waiver_accepted_at, is_admin, is_super_admin, created_at")
       .order("created_at", { ascending: false });
     setLoadingAccounts(false);
     if (!error) setAccounts(data);
@@ -50,6 +50,34 @@ export default function AdminScreen({ navigation }) {
             const { error } = await supabase.rpc("admin_accept_waiver", { target_user_id: account.id });
             setOverridingId(null);
             if (error) Alert.alert("Couldn't update", error.message);
+            else loadAccounts();
+          },
+        },
+      ]
+    );
+  };
+
+  // Toggles admin/super-admin on another account. Only a super admin ever
+  // sees these controls (server-side enforced too, in admin_set_role), and
+  // a super admin can't edit their own row here — avoids locking yourself
+  // out mid-session; use a different super admin's account for that.
+  const setRole = (account, nextIsAdmin, nextIsSuperAdmin, label) => {
+    Alert.alert(
+      `${label} for ${account.name}?`,
+      "This changes what they can access next time they open the app.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm",
+          onPress: async () => {
+            setOverridingId(account.id);
+            const { error } = await supabase.rpc("admin_set_role", {
+              target_user_id: account.id,
+              new_is_admin: nextIsAdmin,
+              new_is_super_admin: nextIsSuperAdmin,
+            });
+            setOverridingId(null);
+            if (error) Alert.alert("Couldn't update role", error.message);
             else loadAccounts();
           },
         },
@@ -196,34 +224,90 @@ export default function AdminScreen({ navigation }) {
         {section === "waivers" && (
           <View style={{ paddingHorizontal: spacing.lg, marginTop: 10 }}>
             <Text style={styles.waiverNote}>
-              Real signed-in accounts and their Smartwaiver status. Use "Mark as accepted" only when someone
-              signed a waiver outside the app (paper form, etc.) — everyone else is confirmed automatically
-              by Smartwaiver once they sign in-app.
+              Real signed-in accounts, their Smartwaiver status{isSuperAdmin ? ", and their role" : ""}.
+              Use "Mark as accepted" only when someone signed a waiver outside the app (paper form, etc.) —
+              everyone else is confirmed automatically by Smartwaiver once they sign in-app.
             </Text>
             {loadingAccounts && <Text style={{ color: colors.slate, marginTop: 10 }}>Loading...</Text>}
             {!loadingAccounts && accounts.length === 0 && (
               <Text style={{ color: colors.slate, marginTop: 10 }}>No accounts yet.</Text>
             )}
-            {accounts.map((a) => (
-              <View key={a.id} style={styles.waiverRow}>
-                <Avatar name={a.name} size={38} />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={{ fontWeight: "700" }}>{a.name}</Text>
-                  <Text style={{ fontSize: 11.5, color: a.waiver_accepted ? colors.turf : colors.warn, fontWeight: "600", marginTop: 2 }}>
-                    {a.waiver_accepted ? "✓ Waiver signed" : "Waiver not signed"}
-                  </Text>
+            {accounts.map((a) => {
+              const roleLabel = a.is_super_admin ? "Super admin" : a.is_admin ? "Admin" : "Player";
+              const isSelf = a.id === profile?.id;
+              const busy = overridingId === a.id;
+              return (
+                <View key={a.id} style={styles.waiverCard}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Avatar name={a.name} size={38} />
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={{ fontWeight: "700" }}>{a.name}</Text>
+                        {(a.is_admin || a.is_super_admin) && (
+                          <View style={[styles.roleBadge, a.is_super_admin && { backgroundColor: colors.lime }]}>
+                            <Text style={[styles.roleBadgeText, a.is_super_admin && { color: colors.pitch }]}>{roleLabel}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={{ fontSize: 11.5, color: a.waiver_accepted ? colors.turf : colors.warn, fontWeight: "600", marginTop: 2 }}>
+                        {a.waiver_accepted ? "✓ Waiver signed" : "Waiver not signed"}
+                      </Text>
+                    </View>
+                    {!a.waiver_accepted && (
+                      <Button
+                        title={busy ? "..." : "Mark as accepted"}
+                        variant="outline"
+                        disabled={busy}
+                        style={{ paddingHorizontal: 12, paddingVertical: 8 }}
+                        onPress={() => overrideWaiver(a)}
+                      />
+                    )}
+                  </View>
+
+                  {isSuperAdmin && !isSelf && (
+                    <View style={styles.roleActions}>
+                      {a.is_admin ? (
+                        <Button
+                          title="Remove admin"
+                          variant="danger"
+                          disabled={busy}
+                          style={styles.roleActionBtn}
+                          onPress={() => setRole(a, false, false, "Remove admin access")}
+                        />
+                      ) : (
+                        <Button
+                          title="Make admin"
+                          variant="outline"
+                          disabled={busy}
+                          style={styles.roleActionBtn}
+                          onPress={() => setRole(a, true, false, "Grant admin access")}
+                        />
+                      )}
+                      {a.is_super_admin ? (
+                        <Button
+                          title="Remove super admin"
+                          variant="danger"
+                          disabled={busy}
+                          style={styles.roleActionBtn}
+                          onPress={() => setRole(a, true, false, "Remove super admin")}
+                        />
+                      ) : (
+                        <Button
+                          title="Make super admin"
+                          variant="turf"
+                          disabled={busy}
+                          style={styles.roleActionBtn}
+                          onPress={() => setRole(a, true, true, "Grant super admin access")}
+                        />
+                      )}
+                    </View>
+                  )}
+                  {isSuperAdmin && isSelf && (
+                    <Text style={styles.selfNote}>You can't change your own role here — ask another super admin.</Text>
+                  )}
                 </View>
-                {!a.waiver_accepted && (
-                  <Button
-                    title={overridingId === a.id ? "..." : "Mark as accepted"}
-                    variant="outline"
-                    disabled={overridingId === a.id}
-                    style={{ paddingHorizontal: 12, paddingVertical: 8 }}
-                    onPress={() => overrideWaiver(a)}
-                  />
-                )}
-              </View>
-            ))}
+              );
+            })}
           </View>
         )}
 
@@ -314,6 +398,11 @@ const styles = StyleSheet.create({
   featureIc: { width: 38, height: 38, borderRadius: 10, backgroundColor: "#E9EEFC", alignItems: "center", justifyContent: "center" },
   waEditCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 10, padding: 14 },
   waiverNote: { fontSize: 12, color: colors.slate, lineHeight: 17 },
-  waiverRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginTop: 10, padding: 12 },
+  waiverCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginTop: 10, padding: 12 },
+  roleBadge: { backgroundColor: colors.turf, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  roleBadgeText: { fontSize: 9.5, fontWeight: "700", color: "#fff", textTransform: "uppercase" },
+  roleActions: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.line, borderStyle: "dashed" },
+  roleActionBtn: { flexGrow: 1, paddingHorizontal: 10, paddingVertical: 8 },
+  selfNote: { fontSize: 11, color: colors.slate, fontStyle: "italic", marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: colors.line, borderStyle: "dashed" },
   waInput: { marginTop: 10, backgroundColor: colors.chalk, borderWidth: 1.5, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: colors.ink },
 });
