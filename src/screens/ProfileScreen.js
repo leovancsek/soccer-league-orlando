@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Button } from "../components/Shared";
 
@@ -9,9 +11,10 @@ const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
 export default function ProfileScreen() {
-  const { profile, updateProfile, logout } = useAuth();
+  const { session, profile, updateProfile, logout } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [form, setForm] = useState(profile);
 
   if (!profile) {
@@ -23,6 +26,45 @@ export default function ProfileScreen() {
   }
 
   const startEdit = () => { setForm(profile); setEditing(true); };
+
+  const pickAvatar = async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission needed", "Allow photo library access to update your profile picture.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: [ImagePicker.MediaType.Images],
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+
+    setUploadingAvatar(true);
+    try {
+      const uri = result.assets[0].uri;
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
+      const path = `${session.user.id}/avatar.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, arrayBuffer, { contentType: "image/jpeg", upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      // Cache-bust so the new photo shows immediately instead of a stale CDN copy.
+      const avatar_url = `${data.publicUrl}?t=${Date.now()}`;
+
+      const { error: saveError } = await updateProfile({ avatar_url });
+      if (saveError) throw new Error(saveError);
+    } catch (err) {
+      Alert.alert("Couldn't update photo", err.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   const save = async () => {
     setSaving(true);
     const { error } = await updateProfile({
@@ -62,9 +104,16 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView>
         <View style={styles.hero}>
-          <View style={styles.avatarWrap}>
-            <Avatar name={profile.name} size={84} bg={colors.lime} color={colors.pitch} />
-          </View>
+          <TouchableOpacity style={styles.avatarWrap} onPress={pickAvatar} disabled={uploadingAvatar}>
+            <Avatar name={profile.name} size={84} bg={colors.lime} color={colors.pitch} uri={profile.avatar_url} />
+            <View style={styles.avatarEditBadge}>
+              {uploadingAvatar ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={{ fontSize: 13 }}>📷</Text>
+              )}
+            </View>
+          </TouchableOpacity>
           <Text style={styles.name}>{profile.name}</Text>
           <Text style={styles.subline}>{profile.position} · {profile.level} · {profile.city}</Text>
           <View style={styles.scoreboard}>
@@ -119,10 +168,11 @@ function ChipRow({ options, value, onChange }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.pitch, padding: spacing.lg },
+  header: { backgroundColor: colors.turf, padding: spacing.lg },
   headerTitle: { color: "#fff", fontWeight: "700", fontSize: 17 },
-  hero: { backgroundColor: colors.pitch, paddingTop: 30, paddingBottom: 26, alignItems: "center" },
-  avatarWrap: { marginBottom: 12 },
+  hero: { backgroundColor: colors.turf, paddingTop: 30, paddingBottom: 26, alignItems: "center" },
+  avatarWrap: { marginBottom: 12, position: "relative" },
+  avatarEditBadge: { position: "absolute", bottom: -2, right: -2, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.turf, borderWidth: 2, borderColor: colors.pitch, alignItems: "center", justifyContent: "center" },
   name: { color: "#fff", fontWeight: "700", fontSize: 21 },
   subline: { color: "#C9D6F5", fontSize: 13, marginTop: 4 },
   scoreboard: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 12, marginTop: 18, marginHorizontal: spacing.lg, borderWidth: 1, borderColor: "rgba(255,255,255,0.12)" },

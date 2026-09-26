@@ -57,7 +57,7 @@ export default function ChatScreen({ route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.pitch, padding: spacing.lg },
+  header: { backgroundColor: colors.turf, padding: spacing.lg },
   title: { color: "#fff", fontWeight: "700", fontSize: 17 },
   sub: { color: "#C9D6F5", fontSize: 11.5, marginTop: 2 },
   bubble: { maxWidth: "75%", padding: 12, borderRadius: 16, marginBottom: 10 },

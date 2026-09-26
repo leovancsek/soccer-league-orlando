@@ -3,7 +3,7 @@ import { View, Text, TextInput, FlatList, StyleSheet, ScrollView, TouchableOpaci
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
-import { TicketCard, Button } from "../components/Shared";
+import { TicketCard, Button, HeaderLogo } from "../components/Shared";
 
 const FORMATS = ["all", "5v5", "7v7", "11v11"];
 const PAGE_SIZE = 3;
@@ -29,7 +29,10 @@ export default function GamesScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.brand}>⚽ Soccer League Orlando</Text>
+        <View style={styles.brandRow}>
+          <HeaderLogo size={28} />
+          <Text style={styles.brand}>Soccer League Orlando</Text>
+        </View>
         <View style={styles.pill}><Text style={styles.pillText}>📍 Orlando, FL</Text></View>
         <View style={styles.searchBar}>
           <TextInput
@@ -42,7 +45,7 @@ export default function GamesScreen({ navigation }) {
         </View>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow} contentContainerStyle={{ paddingHorizontal: spacing.lg }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow} contentContainerStyle={{ paddingHorizontal: spacing.lg, alignItems: "center" }}>
         {FORMATS.map((f) => (
           <TouchableOpacity
             key={f}
@@ -77,13 +80,14 @@ export default function GamesScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.pitch, padding: spacing.lg, paddingBottom: 14 },
+  header: { backgroundColor: colors.turf, padding: spacing.lg, paddingBottom: 14 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   brand: { color: "#fff", fontWeight: "700", fontSize: 17 },
   pill: { alignSelf: "flex-start", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, marginTop: 8 },
   pillText: { color: "#C9D6F5", fontSize: 12.5 },
   searchBar: { marginTop: 14, backgroundColor: "rgba(255,255,255,0.08)", borderRadius: radius.md, paddingHorizontal: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.14)" },
   searchInput: { color: "#fff", fontSize: 14, paddingVertical: 10 },
-  chipRow: { marginTop: 12, marginBottom: 4, flexGrow: 0 },
+  chipRow: { marginTop: 12, marginBottom: 4, flexGrow: 0, height: 44 },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, marginRight: 8 },
   chipActive: { backgroundColor: colors.turf, borderColor: colors.turf },
   chipText: { fontSize: 12.5, fontWeight: "600", color: colors.slate },

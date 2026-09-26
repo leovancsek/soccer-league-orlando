@@ -3,7 +3,7 @@ import { View, Text, FlatList, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing } from "../theme/theme";
-import { TicketCard, Button } from "../components/Shared";
+import { TicketCard, Button, HeaderLogo } from "../components/Shared";
 
 export default function BookingsScreen({ navigation }) {
   const { games, myBookings, cancelBooking, openOrCreateConversation } = useApp();
@@ -11,7 +11,10 @@ export default function BookingsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}><Text style={styles.title}>My bookings</Text></View>
+      <View style={styles.header}>
+        <HeaderLogo size={26} />
+        <Text style={styles.title}>My bookings</Text>
+      </View>
       <FlatList
         data={booked}
         keyExtractor={(g) => String(g.id)}
@@ -40,7 +43,7 @@ export default function BookingsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.pitch, padding: spacing.lg },
+  header: { backgroundColor: colors.turf, padding: spacing.lg, flexDirection: "row", alignItems: "center", gap: 10 },
   title: { color: "#fff", fontWeight: "700", fontSize: 19 },
   empty: { textAlign: "center", color: colors.slate, marginTop: 60, paddingHorizontal: 30 },
   actions: { flexDirection: "row", gap: 10, marginHorizontal: spacing.lg, marginTop: -4, marginBottom: 14 },

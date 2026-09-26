@@ -6,7 +6,19 @@ export function initials(name) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
 
-export function Avatar({ name, size = 36, bg = colors.turf, color = "#fff" }) {
+export function HeaderLogo({ size = 30, style }) {
+  return (
+    <Image
+      source={require("../../assets/logo-mark.png")}
+      style={[{ width: size, height: size }, style]}
+    />
+  );
+}
+
+export function Avatar({ name, size = 36, bg = colors.turf, color = "#fff", uri }) {
+  if (uri) {
+    return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  }
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}>
       <Text style={{ color, fontWeight: "700", fontSize: size * 0.34 }}>{initials(name)}</Text>

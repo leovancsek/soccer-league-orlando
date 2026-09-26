@@ -86,13 +86,13 @@ export default function GameDetailScreen({ route, navigation }) {
 
       <View style={styles.stickyBar}>
         {booked ? (
-          <Button title="✓ You're booked in" variant="outline" disabled style={{ flex: 1 }} />
+          <Button title="✓ You're booked in" variant="outline" disabled style={{ width: "100%" }} />
         ) : full ? (
-          <Button title="Game is full" variant="ghost" disabled style={{ flex: 1, backgroundColor: colors.line }} />
+          <Button title="Game is full" variant="ghost" disabled style={{ width: "100%", backgroundColor: colors.line }} />
         ) : paying ? (
-          <View style={{ flex: 1, alignItems: "center", paddingVertical: 14 }}><ActivityIndicator color={colors.turf} /></View>
+          <View style={{ width: "100%", alignItems: "center", paddingVertical: 14 }}><ActivityIndicator color={colors.turf} /></View>
         ) : (
-          <Button title={`Book this slot — pay ${game.price}`} onPress={handleBookAndPay} style={{ flex: 1 }} />
+          <Button title={`Book this slot — pay ${game.price}`} onPress={handleBookAndPay} style={{ width: "100%" }} />
         )}
       </View>
     </SafeAreaView>

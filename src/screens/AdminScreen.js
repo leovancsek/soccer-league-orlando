@@ -1,14 +1,18 @@
 import React, { useState } from "react";
-import { View, Text, Image, ScrollView, TouchableOpacity, StyleSheet, Switch, Alert, Platform } from "react-native";
+import { View, Text, Image, ScrollView, TouchableOpacity, TextInput, StyleSheet, Switch, Alert, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
-import { Avatar, Button } from "../components/Shared";
+import { Avatar, Button, HeaderLogo } from "../components/Shared";
 import { ROSTER_CONFIG } from "../data/seedData";
 
 export default function AdminScreen({ navigation }) {
-  const { games, users, features, toggleUserStatus, toggleFeature, addRosterPlayer, removeRosterPlayer, deleteGame } = useApp();
+  const {
+    games, users, features, toggleUserStatus, toggleFeature, addRosterPlayer, removeRosterPlayer, deleteGame,
+    whatsappGroupUrl, setWhatsappGroupUrl,
+  } = useApp();
   const [section, setSection] = useState("games");
+  const [waInput, setWaInput] = useState(whatsappGroupUrl || "");
   const activeUsers = users.filter((u) => u.status === "active").length;
   const enabledFeatures = features.filter((f) => f.enabled).length;
 
@@ -26,7 +30,10 @@ export default function AdminScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Admin</Text>
+        <View style={styles.headerTop}>
+          <HeaderLogo size={26} />
+          <Text style={styles.title}>Admin</Text>
+        </View>
         <Text style={styles.sub}>Manage games, users and platform features</Text>
         <View style={styles.segment}>
           {["games", "users", "features"].map((s) => (
@@ -145,6 +152,26 @@ export default function AdminScreen({ navigation }) {
           </View>
         ))}
 
+        {section === "features" && (
+          <View style={styles.waEditCard}>
+            <Text style={styles.rosterTitle}>WhatsApp announcements group</Text>
+            <Text style={styles.rosterSub}>Shown as a banner on every player's Messages tab</Text>
+            <TextInput
+              style={styles.waInput}
+              placeholder="https://chat.whatsapp.com/..."
+              placeholderTextColor={colors.slate}
+              autoCapitalize="none"
+              value={waInput}
+              onChangeText={setWaInput}
+            />
+            <Button
+              title="Save"
+              variant="turf"
+              style={{ marginTop: 10 }}
+              onPress={() => setWhatsappGroupUrl(waInput.trim() || null)}
+            />
+          </View>
+        )}
         {section === "features" && features.map((f) => (
           <View key={f.id} style={[styles.featureRow, !f.enabled && { opacity: 0.5 }]}>
             <View style={styles.featureIc}><Text style={{ fontSize: 17 }}>{f.icon}</Text></View>
@@ -171,7 +198,8 @@ function StatBox({ n, l }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.pitch, padding: spacing.lg },
+  header: { backgroundColor: colors.turf, padding: spacing.lg },
+  headerTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   title: { color: "#fff", fontWeight: "700", fontSize: 19 },
   sub: { color: "#C9D6F5", fontSize: 12.5, marginTop: 2 },
   segment: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 12, padding: 4, marginTop: 14, gap: 4 },
@@ -209,4 +237,6 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   featureRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 10, padding: 14 },
   featureIc: { width: 38, height: 38, borderRadius: 10, backgroundColor: "#E9EEFC", alignItems: "center", justifyContent: "center" },
+  waEditCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 10, padding: 14 },
+  waInput: { marginTop: 10, backgroundColor: colors.chalk, borderWidth: 1.5, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: colors.ink },
 });

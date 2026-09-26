@@ -24,6 +24,7 @@ export function AppProvider({ children }) {
   const [conversations, setConversations] = useState(initialConversations);
   const [profile, setProfile] = useState(initialProfile);
   const [myBookings, setMyBookings] = useState([]);
+  const [whatsappGroupUrl, setWhatsappGroupUrl] = useState(null);
 
   const bookGame = useCallback((gameId) => {
     setGames((gs) => gs.map((g) => (g.id === gameId ? { ...g, spotsFilled: Math.min(g.spotsTotal, g.spotsFilled + 1) } : g)));
@@ -157,9 +158,9 @@ export function AppProvider({ children }) {
   }, []);
 
   const value = {
-    games, users, features, conversations, profile, myBookings,
+    games, users, features, conversations, profile, myBookings, whatsappGroupUrl,
     setProfile, bookGame, initiatePayment, cancelBooking, toggleUserStatus, toggleFeature,
-    addRosterPlayer, removeRosterPlayer, deleteGame, saveGame,
+    addRosterPlayer, removeRosterPlayer, deleteGame, saveGame, setWhatsappGroupUrl,
     sendMessage, markRead, openOrCreateConversation,
   };
 
