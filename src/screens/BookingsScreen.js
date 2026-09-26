@@ -43,7 +43,7 @@ export default function BookingsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.turf, padding: spacing.lg, flexDirection: "row", alignItems: "center", gap: 10 },
+  header: { backgroundColor: colors.pitch, padding: spacing.lg, flexDirection: "row", alignItems: "center", gap: 10 },
   title: { color: "#fff", fontWeight: "700", fontSize: 19 },
   empty: { textAlign: "center", color: colors.slate, marginTop: 60, paddingHorizontal: 30 },
   actions: { flexDirection: "row", gap: 10, marginHorizontal: spacing.lg, marginTop: -4, marginBottom: 14 },

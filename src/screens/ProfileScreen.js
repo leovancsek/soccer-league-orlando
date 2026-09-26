@@ -3,15 +3,20 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Activi
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../i18n/LocaleContext";
+import { SUPPORTED_LOCALES } from "../i18n/translations";
 import { supabase } from "../lib/supabase";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Button } from "../components/Shared";
+
+const LANG_KEY = { en: "english", es: "spanish", pt: "portuguese" };
 
 const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
 export default function ProfileScreen() {
   const { session, profile, updateProfile, logout } = useAuth();
+  const { t, locale, setLocale } = useLocale();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -127,6 +132,16 @@ export default function ProfileScreen() {
             <Text style={styles.cardLabel}>About</Text>
             <Text style={{ fontSize: 14, lineHeight: 20, color: colors.ink }}>{profile.bio}</Text>
           </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>{t("language.title")}</Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+              {SUPPORTED_LOCALES.map((l) => (
+                <TouchableOpacity key={l} onPress={() => setLocale(l)} style={[styles.chip, locale === l && styles.chipActive]}>
+                  <Text style={[styles.chipText, locale === l && styles.chipTextActive]}>{t(`language.${LANG_KEY[l]}`)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
           <Button title="Edit profile" onPress={startEdit} />
           <Button title="Log out" variant="ghost" style={{ marginTop: 10 }} onPress={logout} />
         </View>
@@ -150,7 +165,7 @@ function Field({ label, ...props }) {
   return (
     <View style={{ marginBottom: 16 }}>
       <FieldLabel>{label}</FieldLabel>
-      <TextInput style={styles.input} {...props} />
+      <TextInput style={styles.input} placeholderTextColor={colors.slate} {...props} />
     </View>
   );
 }
@@ -168,9 +183,9 @@ function ChipRow({ options, value, onChange }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.turf, padding: spacing.lg },
+  header: { backgroundColor: colors.pitch, padding: spacing.lg },
   headerTitle: { color: "#fff", fontWeight: "700", fontSize: 17 },
-  hero: { backgroundColor: colors.turf, paddingTop: 30, paddingBottom: 26, alignItems: "center" },
+  hero: { backgroundColor: colors.pitch, paddingTop: 30, paddingBottom: 26, alignItems: "center" },
   avatarWrap: { marginBottom: 12, position: "relative" },
   avatarEditBadge: { position: "absolute", bottom: -2, right: -2, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.turf, borderWidth: 2, borderColor: colors.pitch, alignItems: "center", justifyContent: "center" },
   name: { color: "#fff", fontWeight: "700", fontSize: 21 },
@@ -183,7 +198,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.lg, padding: 14, marginBottom: 12 },
   cardLabel: { fontSize: 11, fontWeight: "700", color: colors.slate, textTransform: "uppercase", marginBottom: 6 },
   fieldLabel: { fontSize: 11.5, fontWeight: "700", textTransform: "uppercase", color: colors.slate, marginBottom: 6 },
-  input: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14 },
+  input: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: colors.ink },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.card },
   chipActive: { backgroundColor: colors.turf, borderColor: colors.turf },
   chipText: { fontSize: 12.5, fontWeight: "600", color: colors.slate },

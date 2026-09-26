@@ -159,7 +159,7 @@ function Field({ label, style, ...props }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.turf, padding: spacing.lg },
+  header: { backgroundColor: colors.pitch, padding: spacing.lg },
   title: { color: "#fff", fontWeight: "700", fontSize: 17 },
   fieldLabel: { fontSize: 11.5, fontWeight: "700", textTransform: "uppercase", color: colors.slate, marginBottom: 6 },
   input: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: colors.ink },

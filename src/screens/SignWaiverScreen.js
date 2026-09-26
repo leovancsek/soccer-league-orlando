@@ -72,7 +72,7 @@ export default function SignWaiverScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.turf, padding: spacing.lg, flexDirection: "row", alignItems: "center", gap: 10 },
+  header: { backgroundColor: colors.pitch, padding: spacing.lg, flexDirection: "row", alignItems: "center", gap: 10 },
   title: { color: "#fff", fontWeight: "700", fontSize: 19 },
   pad: { padding: spacing.lg },
   card: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: radius.lg, padding: 20, alignItems: "center", marginBottom: 8 },

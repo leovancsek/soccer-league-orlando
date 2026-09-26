@@ -20,6 +20,7 @@ import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
 import { useApp } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
+import { useLocale } from "../i18n/LocaleContext";
 import { colors } from "../theme/theme";
 
 const Tab = createBottomTabNavigator();
@@ -55,10 +56,12 @@ function AdminStackScreen() {
 }
 
 const ICONS = { Games: "⚽", Bookings: "📅", Messages: "💬", Admin: "🛡️", Profile: "👤" };
+const TAB_KEYS = { Games: "games", Bookings: "bookings", Messages: "messages", Admin: "admin", Profile: "profile" };
 
 function MainTabs() {
   const { conversations } = useApp();
   const { profile } = useAuth();
+  const { t } = useLocale();
   const hasUnread = conversations.some((c) => c.unread);
   const isAdmin = !!(profile?.is_admin || profile?.is_super_admin);
 
@@ -66,10 +69,11 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.turf,
+        tabBarActiveTintColor: colors.lime,
         tabBarInactiveTintColor: colors.slate,
-        tabBarStyle: { borderTopColor: colors.line },
+        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.line },
         tabBarIcon: () => <Text style={{ fontSize: 18 }}>{ICONS[route.name]}</Text>,
+        tabBarLabel: t(`tabs.${TAB_KEYS[route.name]}`),
         tabBarBadge: route.name === "Messages" && hasUnread ? " " : undefined,
         tabBarBadgeStyle: { backgroundColor: colors.warn, minWidth: 9, height: 9, borderRadius: 5 },
       })}

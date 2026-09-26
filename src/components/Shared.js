@@ -1,6 +1,21 @@
 import React from "react";
 import { View, Text, Image, StyleSheet, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { colors, radius, spacing } from "../theme/theme";
+
+// Full-bleed blue gradient + centered logo, used behind all auth screens
+// (login/register/forgot/reset) — the app's main tabs use the dark navy
+// theme instead (see theme.js), this gradient is reserved for auth only.
+export function AuthBackground({ children, logoSize = 96 }) {
+  return (
+    <LinearGradient colors={[colors.turf, colors.pitch]} style={styles.authBg}>
+      <View style={styles.authLogoWrap}>
+        <Image source={require("../../assets/logo-mark.png")} style={{ width: logoSize, height: logoSize }} />
+      </View>
+      {children}
+    </LinearGradient>
+  );
+}
 
 export function initials(name) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
@@ -101,6 +116,8 @@ export function TicketCard({ game, onPress }) {
 }
 
 const styles = StyleSheet.create({
+  authBg: { flex: 1 },
+  authLogoWrap: { alignItems: "center", paddingTop: 50, paddingBottom: 10 },
   avatar: { alignItems: "center", justifyContent: "center" },
   badge: { alignSelf: "flex-start", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 6, marginBottom: 6 },
   btn: { paddingVertical: 14, borderRadius: radius.md, alignItems: "center", borderWidth: 1.5 },
@@ -114,9 +131,9 @@ const styles = StyleSheet.create({
   spotsLbl: { fontSize: 10, color: colors.slate, textTransform: "uppercase" },
   metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.line, borderStyle: "dashed" },
   day: { fontSize: 10, color: colors.slate, textTransform: "uppercase" },
-  time: { fontSize: 13, fontWeight: "700", color: colors.pitch },
+  time: { fontSize: 13, fontWeight: "700", color: colors.ink },
   price: { fontSize: 15, fontWeight: "700", color: colors.turf },
-  ticketBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, backgroundColor: "#FBFCF9" },
+  ticketBottom: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 12, backgroundColor: colors.chalk },
   orgRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   orgText: { fontSize: 12.5, color: colors.slate },
   levelTag: { fontSize: 11, color: colors.slate, fontWeight: "600" },

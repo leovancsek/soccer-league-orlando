@@ -71,7 +71,7 @@ export default function GameDetailScreen({ route, navigation }) {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <Avatar name={game.organizer.name} size={38} />
                 <View>
-                  <Text style={{ fontWeight: "700" }}>{game.organizer.name}</Text>
+                  <Text style={{ fontWeight: "700", color: colors.ink }}>{game.organizer.name}</Text>
                   <Text style={{ color: colors.slate, fontSize: 12 }}>★ {game.organizer.rating} organizer rating</Text>
                 </View>
               </View>
@@ -121,7 +121,7 @@ function InfoLine({ label, value, last }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
   banner: { width: "100%", height: 190 },
-  hero: { backgroundColor: colors.turf, padding: spacing.lg, paddingBottom: 26 },
+  hero: { backgroundColor: colors.pitch, padding: spacing.lg, paddingBottom: 26 },
   heroTitle: { color: "#fff", fontSize: 22, fontWeight: "700", marginTop: 8 },
   heroSub: { color: "#DCE6F5", fontSize: 13, marginTop: 5 },
   pad: { padding: spacing.lg },

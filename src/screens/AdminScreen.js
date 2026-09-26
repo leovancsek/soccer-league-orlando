@@ -204,8 +204,8 @@ export default function AdminScreen({ navigation }) {
             <Avatar name={u.name} size={40} bg={u.status === "suspended" ? colors.slate : colors.turf} />
             <View style={{ flex: 1, marginLeft: 12 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Text style={{ fontWeight: "700" }}>{u.name}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: u.status === "active" ? "#E3EBFC" : "#FBE9E5" }]}>
+                <Text style={{ fontWeight: "700", color: colors.ink }}>{u.name}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: u.status === "active" ? colors.chalk : colors.chalk }]}>
                   <Text style={{ fontSize: 9.5, fontWeight: "700", color: u.status === "active" ? colors.turf : colors.warn, textTransform: "uppercase" }}>{u.status}</Text>
                 </View>
               </View>
@@ -243,7 +243,7 @@ export default function AdminScreen({ navigation }) {
                     <Avatar name={a.name} size={38} />
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <Text style={{ fontWeight: "700" }}>{a.name}</Text>
+                        <Text style={{ fontWeight: "700", color: colors.ink }}>{a.name}</Text>
                         {(a.is_admin || a.is_super_admin) && (
                           <View style={[styles.roleBadge, a.is_super_admin && { backgroundColor: colors.lime }]}>
                             <Text style={[styles.roleBadgeText, a.is_super_admin && { color: colors.pitch }]}>{roleLabel}</Text>
@@ -328,7 +328,7 @@ export default function AdminScreen({ navigation }) {
           <View key={f.id} style={[styles.featureRow, !f.enabled && { opacity: 0.5 }]}>
             <View style={styles.featureIc}><Text style={{ fontSize: 17 }}>{f.icon}</Text></View>
             <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={{ fontWeight: "700" }}>{f.name}</Text>
+              <Text style={{ fontWeight: "700", color: colors.ink }}>{f.name}</Text>
               <Text style={{ fontSize: 12, color: colors.slate, marginTop: 2 }}>{f.desc}</Text>
             </View>
             <Switch value={f.enabled} onValueChange={() => toggleFeature(f.id)} trackColor={{ true: colors.turf }} />
@@ -350,7 +350,7 @@ function StatBox({ n, l }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.turf, padding: spacing.lg },
+  header: { backgroundColor: colors.pitch, padding: spacing.lg },
   headerTop: { flexDirection: "row", alignItems: "center", gap: 10 },
   title: { color: "#fff", fontWeight: "700", fontSize: 19 },
   sub: { color: "#C9D6F5", fontSize: 12.5, marginTop: 2 },
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   gameCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 14, overflow: "hidden" },
   gameImg: { width: "100%", height: 110 },
   noImg: { width: "100%", height: 70, backgroundColor: colors.turf, alignItems: "center", justifyContent: "center" },
-  gameTitle: { fontWeight: "700", fontSize: 15 },
+  gameTitle: { fontWeight: "700", fontSize: 15, color: colors.ink },
   typePill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   typePillText: { color: "#fff", fontSize: 9.5, fontWeight: "700", textTransform: "uppercase" },
   gameMeta: { fontSize: 12, color: colors.slate, marginTop: 2 },
@@ -377,18 +377,18 @@ const styles = StyleSheet.create({
   fill: { height: "100%", borderRadius: 6 },
   rosterGroup: { marginTop: 14, paddingTop: 12, borderTopWidth: 1.5, borderColor: colors.line, borderStyle: "dashed" },
   rosterHead: { flexDirection: "row", justifyContent: "space-between" },
-  rosterTitle: { fontWeight: "700", fontSize: 13.5 },
+  rosterTitle: { fontWeight: "700", fontSize: 13.5, color: colors.ink },
   rosterFee: { fontWeight: "700", fontSize: 13, color: colors.turf },
   rosterSub: { fontSize: 11, color: colors.slate },
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
-  mpChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#EEF2FE", borderRadius: 16, paddingHorizontal: 8, paddingVertical: 4 },
+  mpChip: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: colors.chalk, borderRadius: 16, paddingHorizontal: 8, paddingVertical: 4 },
   mpChipText: { fontSize: 11.5, fontWeight: "600", color: colors.turf },
   addChip: { borderWidth: 1.5, borderColor: colors.line, borderStyle: "dashed", borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5 },
   addChipText: { fontSize: 11.5, fontWeight: "700", color: colors.slate },
   userRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 10, padding: 12 },
   statusBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
   featureRow: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 10, padding: 14 },
-  featureIc: { width: 38, height: 38, borderRadius: 10, backgroundColor: "#E9EEFC", alignItems: "center", justifyContent: "center" },
+  featureIc: { width: 38, height: 38, borderRadius: 10, backgroundColor: colors.chalk, alignItems: "center", justifyContent: "center" },
   waEditCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginHorizontal: spacing.lg, marginTop: 10, padding: 14 },
   waiverNote: { fontSize: 12, color: colors.slate, lineHeight: 17 },
   waiverCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, marginTop: 10, padding: 12 },

@@ -37,7 +37,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#12235A"
         }
-      ]
+      ],
+      "expo-localization"
     ]
   }
 }

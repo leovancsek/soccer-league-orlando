@@ -41,7 +41,7 @@ export default function ChatScreen({ route }) {
         <View style={styles.inputBar}>
           <TextInput
             style={styles.input}
-            placeholder="Message the organizer..."
+            placeholder="Message the organizer..." placeholderTextColor={colors.slate}
             value={text}
             onChangeText={setText}
             onSubmitEditing={handleSend}
@@ -57,7 +57,7 @@ export default function ChatScreen({ route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.turf, padding: spacing.lg },
+  header: { backgroundColor: colors.pitch, padding: spacing.lg },
   title: { color: "#fff", fontWeight: "700", fontSize: 17 },
   sub: { color: "#C9D6F5", fontSize: 11.5, marginTop: 2 },
   bubble: { maxWidth: "75%", padding: 12, borderRadius: 16, marginBottom: 10 },
@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
   bubbleMe: { backgroundColor: colors.turf, alignSelf: "flex-end", borderBottomRightRadius: 4 },
   bubbleTime: { fontSize: 10, color: colors.slate, marginTop: 3 },
   inputBar: { flexDirection: "row", gap: 8, padding: 14, borderTopWidth: 1, borderColor: colors.line, backgroundColor: colors.chalk },
-  input: { flex: 1, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, borderRadius: 24, paddingHorizontal: 14, paddingVertical: 10 },
+  input: { flex: 1, backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.line, borderRadius: 24, paddingHorizontal: 14, paddingVertical: 10, color: colors.ink },
   sendBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.turf, alignItems: "center", justifyContent: "center" },
 });
