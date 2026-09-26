@@ -38,7 +38,7 @@ export default function GameFormScreen({ route, navigation }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: [ImagePicker.MediaType.Images],
+      mediaTypes: ["images"],
       quality: 0.7,
       base64: false,
     });
