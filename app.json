@@ -14,7 +14,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.soccerleagueorlando.app",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Used to upload a photo of the field when creating a game listing."
+        "NSPhotoLibraryUsageDescription": "Used to upload a photo of the field when creating a game listing.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -40,6 +41,12 @@
       ],
       "expo-localization",
       "@react-native-community/datetimepicker"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ae7617ce-c38c-46a9-a999-bb203dd085e0"
+      }
+    },
+    "owner": "vancsek"
   }
 }
