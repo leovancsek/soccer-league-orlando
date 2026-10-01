@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
 
-export default function ChatScreen({ route }) {
+const REPORT_REASONS = ["Spam", "Harassment or abuse", "Inappropriate content", "Other"];
+
+export default function ChatScreen({ route, navigation }) {
   const { conversationId } = route.params;
-  const { conversations, sendMessage, markRead } = useApp();
+  const { conversations, sendMessage, markRead, reportUser, blockUser } = useApp();
   const convo = conversations.find((c) => c.id === conversationId);
   const [text, setText] = useState("");
 
@@ -20,12 +22,62 @@ export default function ChatScreen({ route }) {
     setText("");
   };
 
+  const handleReport = () => {
+    Alert.alert(
+      `Report ${convo.name}?`,
+      "What's the issue?",
+      [
+        ...REPORT_REASONS.map((reason) => ({
+          text: reason,
+          onPress: async () => {
+            const { error } = await reportUser(convo.name, reason);
+            if (error) Alert.alert("Couldn't send report", error);
+            else Alert.alert("Report submitted", "Thanks — our team will review this.");
+          },
+        })),
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
+
+  const handleBlock = () => {
+    Alert.alert(
+      `Block ${convo.name}?`,
+      "You won't see messages from them anymore. You can unblock them later from the Messages tab.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await blockUser(convo.name);
+            if (error) Alert.alert("Couldn't block", error);
+            else navigation.goBack();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleMoreOptions = () => {
+    Alert.alert(convo.name, undefined, [
+      { text: "Report", onPress: handleReport },
+      { text: "Block", style: "destructive", onPress: handleBlock },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <View style={styles.header}>
-          <Text style={styles.title}>{convo.name}</Text>
-          <Text style={styles.sub}>{convo.game}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>{convo.name}</Text>
+            <Text style={styles.sub}>{convo.game}</Text>
+          </View>
+          <TouchableOpacity onPress={handleMoreOptions} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Text style={{ color: "#fff", fontSize: 20 }}>⋯</Text>
+          </TouchableOpacity>
         </View>
         <FlatList
           data={convo.messages}
@@ -57,7 +109,7 @@ export default function ChatScreen({ route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
-  header: { backgroundColor: colors.pitch, padding: spacing.lg },
+  header: { backgroundColor: colors.pitch, padding: spacing.lg, flexDirection: "row", alignItems: "center" },
   title: { color: "#fff", fontWeight: "700", fontSize: 17 },
   sub: { color: "#C9D6F5", fontSize: 11.5, marginTop: 2 },
   bubble: { maxWidth: "75%", padding: 12, borderRadius: 16, marginBottom: 10 },

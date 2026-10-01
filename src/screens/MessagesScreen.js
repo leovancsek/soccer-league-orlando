@@ -1,18 +1,42 @@
 import React from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Linking } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Linking, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing } from "../theme/theme";
 import { Avatar, HeaderLogo } from "../components/Shared";
 
 export default function MessagesScreen({ navigation }) {
-  const { conversations, whatsappGroupUrl } = useApp();
+  const { conversations, whatsappGroupUrl, blockedNames, unblockUser } = useApp();
+
+  const handleManageBlocked = () => {
+    if (blockedNames.length === 0) {
+      Alert.alert("No blocked users", "You haven't blocked anyone.");
+      return;
+    }
+    Alert.alert(
+      "Blocked users",
+      "Tap a name to unblock them.",
+      [
+        ...blockedNames.map((name) => ({
+          text: `Unblock ${name}`,
+          onPress: async () => {
+            const { error } = await unblockUser(name);
+            if (error) Alert.alert("Couldn't unblock", error);
+          },
+        })),
+        { text: "Close", style: "cancel" },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <HeaderLogo size={26} />
         <Text style={styles.title}>Messages</Text>
+        <TouchableOpacity onPress={handleManageBlocked} style={{ marginLeft: "auto" }}>
+          <Text style={styles.blockedLink}>Blocked ({blockedNames.length})</Text>
+        </TouchableOpacity>
       </View>
       <FlatList
         data={conversations}
@@ -56,6 +80,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.chalk },
   header: { backgroundColor: colors.pitch, padding: spacing.lg, flexDirection: "row", alignItems: "center", gap: 10 },
   title: { color: "#fff", fontWeight: "700", fontSize: 19 },
+  blockedLink: { color: "#D7E2FF", fontSize: 11.5, fontWeight: "600", textDecorationLine: "underline" },
   waCard: { flexDirection: "row", alignItems: "center", backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lime, borderRadius: 14, margin: spacing.lg, marginBottom: 6, padding: 12, gap: 10 },
   waIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: colors.chalk, alignItems: "center", justifyContent: "center" },
   waTitle: { fontWeight: "700", fontSize: 13.5, color: colors.ink },

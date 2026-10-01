@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import * as WebBrowser from "expo-web-browser";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "./AuthContext";
 import {
   initialGames, initialUsers, initialFeatures, initialConversations, initialProfile,
 } from "../data/seedData";
@@ -18,6 +19,7 @@ function priceToCents(priceLabel) {
 }
 
 export function AppProvider({ children }) {
+  const { session } = useAuth();
   const [games, setGames] = useState(initialGames);
   const [users, setUsers] = useState(initialUsers);
   const [features, setFeatures] = useState(initialFeatures);
@@ -25,6 +27,45 @@ export function AppProvider({ children }) {
   const [profile, setProfile] = useState(initialProfile);
   const [myBookings, setMyBookings] = useState([]);
   const [whatsappGroupUrl, setWhatsappGroupUrl] = useState(null);
+  const [blockedNames, setBlockedNames] = useState([]);
+
+  const loadBlocks = useCallback(async () => {
+    if (!session?.user) { setBlockedNames([]); return; }
+    const { data, error } = await supabase.from("user_blocks").select("target_name").eq("blocker_id", session.user.id);
+    if (!error) setBlockedNames(data.map((b) => b.target_name));
+  }, [session?.user?.id]);
+
+  useEffect(() => { loadBlocks(); }, [loadBlocks]);
+
+  // Required by App Store Review Guideline 1.2 (user-generated content
+  // apps need report + block). Messaging is still client-side mock state
+  // (see migration 0009_report_block.sql), so these are keyed by the other
+  // person's display name rather than a real profile id for now.
+  const reportUser = useCallback(async (targetName, reason, details) => {
+    if (!session?.user) return { error: "You must be signed in to report." };
+    const { error } = await supabase.from("user_reports").insert({
+      reporter_id: session.user.id, target_name: targetName, reason, details: details || null,
+    });
+    return error ? { error: error.message } : { ok: true };
+  }, [session?.user?.id]);
+
+  const blockUser = useCallback(async (targetName) => {
+    if (!session?.user) return { error: "You must be signed in to block." };
+    const { error } = await supabase.from("user_blocks").insert({
+      blocker_id: session.user.id, target_name: targetName,
+    });
+    if (error && error.code !== "23505") return { error: error.message }; // 23505 = already blocked, treat as success
+    await loadBlocks();
+    return { ok: true };
+  }, [session?.user?.id, loadBlocks]);
+
+  const unblockUser = useCallback(async (targetName) => {
+    if (!session?.user) return { error: "You must be signed in." };
+    const { error } = await supabase.from("user_blocks").delete().eq("blocker_id", session.user.id).eq("target_name", targetName);
+    if (error) return { error: error.message };
+    await loadBlocks();
+    return { ok: true };
+  }, [session?.user?.id, loadBlocks]);
 
   const bookGame = useCallback((gameId) => {
     setGames((gs) => gs.map((g) => (g.id === gameId ? { ...g, spotsFilled: Math.min(g.spotsTotal, g.spotsFilled + 1) } : g)));
@@ -157,11 +198,14 @@ export function AppProvider({ children }) {
     return convo;
   }, []);
 
+  const visibleConversations = conversations.filter((c) => !blockedNames.includes(c.name));
+
   const value = {
-    games, users, features, conversations, profile, myBookings, whatsappGroupUrl,
+    games, users, features, conversations: visibleConversations, profile, myBookings, whatsappGroupUrl,
     setProfile, bookGame, initiatePayment, cancelBooking, toggleUserStatus, toggleFeature,
     addRosterPlayer, removeRosterPlayer, deleteGame, saveGame, setWhatsappGroupUrl,
     sendMessage, markRead, openOrCreateConversation,
+    blockedNames, reportUser, blockUser, unblockUser,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

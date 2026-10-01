@@ -63,6 +63,17 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   };
 
+  // Permanently deletes the signed-in user's account and all owned data
+  // (see migration 0008_delete_own_account.sql) via delete_own_account(),
+  // then signs out locally since the session is no longer valid anyway.
+  const deleteAccount = async () => {
+    if (!session?.user) return { error: "Not signed in." };
+    const { error } = await supabase.rpc("delete_own_account");
+    if (error) return { error: error.message };
+    await supabase.auth.signOut();
+    return { ok: true };
+  };
+
   // Persists edits (name, position, level, city, bio) to the signed-in
   // user's row and refreshes local state so ProfileScreen reflects them.
   const updateProfile = async (fields) => {
@@ -102,6 +113,7 @@ export function AuthProvider({ children }) {
     register,
     login,
     logout,
+    deleteAccount,
     updateProfile,
     refreshProfile,
     requestPasswordReset,

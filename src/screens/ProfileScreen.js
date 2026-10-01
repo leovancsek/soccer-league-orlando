@@ -15,11 +15,12 @@ const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
 const LEVELS = ["Beginner", "Intermediate", "Advanced"];
 
 export default function ProfileScreen() {
-  const { session, profile, updateProfile, logout } = useAuth();
+  const { session, profile, updateProfile, logout, deleteAccount } = useAuth();
   const { t, locale, setLocale } = useLocale();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState(profile);
 
   if (!profile) {
@@ -78,6 +79,35 @@ export default function ProfileScreen() {
     setSaving(false);
     if (error) Alert.alert("Couldn't save changes", error);
     else setEditing(false);
+  };
+
+  // Two sequential confirmations — this is permanent and irreversible, and
+  // Apple explicitly expects a real in-app deletion flow, not a dead end.
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      "Delete your account?",
+      "This permanently deletes your profile, bookings, and messages. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Continue", style: "destructive", onPress: confirmDeleteAccountFinal },
+      ]
+    );
+  };
+  const confirmDeleteAccountFinal = () => {
+    Alert.alert(
+      "Are you absolutely sure?",
+      "Your account and all of its data will be deleted immediately and permanently.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete my account", style: "destructive", onPress: handleDeleteAccount },
+      ]
+    );
+  };
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    const { error } = await deleteAccount();
+    setDeleting(false);
+    if (error) Alert.alert("Couldn't delete account", error);
   };
 
   if (editing) {
@@ -144,6 +174,13 @@ export default function ProfileScreen() {
           </View>
           <Button title="Edit profile" onPress={startEdit} />
           <Button title="Log out" variant="ghost" style={{ marginTop: 10 }} onPress={logout} />
+          <Button
+            title={deleting ? "Deleting..." : "Delete account"}
+            variant="danger"
+            disabled={deleting}
+            style={{ marginTop: 10 }}
+            onPress={confirmDeleteAccount}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
