@@ -9,7 +9,16 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession()
+      .then(({ data }) => setSession(data.session))
+      .catch((err) => {
+        // Without this, an unexpected rejection here leaves `session`
+        // stuck at `undefined` forever — RootNavigator's isLoading never
+        // clears, so the app just spins indefinitely with no indication
+        // why. Fall back to "no session" rather than hang.
+        console.error("getSession failed, treating as signed out:", err);
+        setSession(null);
+      });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
   }, []);

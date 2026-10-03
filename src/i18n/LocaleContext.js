@@ -7,9 +7,17 @@ const STORAGE_KEY = "locale-override";
 const LocaleContext = createContext(null);
 
 function detectDeviceLocale() {
-  const deviceLangs = Localization.getLocales();
-  for (const l of deviceLangs) {
-    if (SUPPORTED_LOCALES.includes(l.languageCode)) return l.languageCode;
+  // Runs synchronously during the very first render, before anything else
+  // in the tree (including the ErrorBoundary) has mounted — a throw here
+  // would crash the app with zero visible indication why. Never let a
+  // device-locale quirk take down the whole app over a cosmetic feature.
+  try {
+    const deviceLangs = Localization.getLocales();
+    for (const l of deviceLangs) {
+      if (SUPPORTED_LOCALES.includes(l.languageCode)) return l.languageCode;
+    }
+  } catch (err) {
+    console.error("detectDeviceLocale failed, falling back to default:", err);
   }
   return DEFAULT_LOCALE;
 }
@@ -28,9 +36,11 @@ export function LocaleProvider({ children }) {
   const [locale, setLocaleState] = useState(detectDeviceLocale());
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((saved) => {
-      if (saved && SUPPORTED_LOCALES.includes(saved)) setLocaleState(saved);
-    });
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((saved) => {
+        if (saved && SUPPORTED_LOCALES.includes(saved)) setLocaleState(saved);
+      })
+      .catch((err) => console.error("Failed to read saved locale:", err));
   }, []);
 
   const setLocale = useCallback((next) => {
