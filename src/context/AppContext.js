@@ -3,7 +3,7 @@ import * as WebBrowser from "expo-web-browser";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "./AuthContext";
 import {
-  initialGames, initialUsers, initialFeatures, initialConversations, initialProfile,
+  initialGames, initialUsers, initialFeatures, initialConversations,
 } from "../data/seedData";
 
 const AppContext = createContext(null);
@@ -19,12 +19,11 @@ function priceToCents(priceLabel) {
 }
 
 export function AppProvider({ children }) {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const [games, setGames] = useState(initialGames);
   const [users, setUsers] = useState(initialUsers);
   const [features, setFeatures] = useState(initialFeatures);
   const [conversations, setConversations] = useState(initialConversations);
-  const [profile, setProfile] = useState(initialProfile);
   const [myBookings, setMyBookings] = useState([]);
   const [whatsappGroupUrl, setWhatsappGroupUrl] = useState(null);
   const [blockedNames, setBlockedNames] = useState([]);
@@ -159,12 +158,12 @@ export function AppProvider({ children }) {
         return [{
           id: newId, spotsFilled: 0, players: [],
           dropIns: [], monthlyPlayers: [], leaguePlayers: [], substitutes: [],
-          organizer: { name: profile.name, rating: 5.0 },
+          organizer: { name: profile?.name || "Unknown organizer", rating: 5.0 },
           ...fields,
         }, ...gs];
       });
     }
-  }, [profile.name]);
+  }, [profile?.name]);
 
   const sendMessage = useCallback((conversationId, text) => {
     setConversations((cs) => cs.map((c) => {
@@ -201,8 +200,8 @@ export function AppProvider({ children }) {
   const visibleConversations = conversations.filter((c) => !blockedNames.includes(c.name));
 
   const value = {
-    games, users, features, conversations: visibleConversations, profile, myBookings, whatsappGroupUrl,
-    setProfile, bookGame, initiatePayment, cancelBooking, toggleUserStatus, toggleFeature,
+    games, users, features, conversations: visibleConversations, myBookings, whatsappGroupUrl,
+    bookGame, initiatePayment, cancelBooking, toggleUserStatus, toggleFeature,
     addRosterPlayer, removeRosterPlayer, deleteGame, saveGame, setWhatsappGroupUrl,
     sendMessage, markRead, openOrCreateConversation,
     blockedNames, reportUser, blockUser, unblockUser,
