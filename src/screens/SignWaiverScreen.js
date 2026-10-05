@@ -5,18 +5,20 @@ import * as WebBrowser from "expo-web-browser";
 import { useAuth } from "../context/AuthContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { Button, HeaderLogo } from "../components/Shared";
+import { useLocale } from "../i18n/LocaleContext";
 
 const WAIVER_URL = process.env.EXPO_PUBLIC_SMARTWAIVER_WAIVER_URL;
 
 export default function SignWaiverScreen({ navigation }) {
+  const { t } = useLocale();
   const { session, refreshProfile } = useAuth();
   const [checking, setChecking] = useState(false);
 
   const openWaiver = async () => {
     if (!WAIVER_URL) {
       Alert.alert(
-        "Waiver not configured",
-        "EXPO_PUBLIC_SMARTWAIVER_WAIVER_URL is missing from .env — ask an admin to set it up."
+        t("signWaiver.notConfiguredTitle"),
+        t("signWaiver.notConfiguredBody")
       );
       return;
     }
@@ -30,13 +32,13 @@ export default function SignWaiverScreen({ navigation }) {
     const { data, error } = await refreshProfile();
     setChecking(false);
     if (error) {
-      Alert.alert("Couldn't check status", error);
+      Alert.alert(t("signWaiver.couldntCheckStatus"), error);
     } else if (data?.waiver_accepted) {
       navigation.goBack();
     } else {
       Alert.alert(
-        "Not signed yet",
-        "We don't see a signed waiver yet. It can take a few seconds after signing — try again shortly, or make sure you completed the form in the browser."
+        t("signWaiver.notSignedYetTitle"),
+        t("signWaiver.notSignedYetBody")
       );
     }
   };
@@ -45,20 +47,19 @@ export default function SignWaiverScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <HeaderLogo size={26} />
-        <Text style={styles.title}>Sign waiver</Text>
+        <Text style={styles.title}>{t("signWaiver.title")}</Text>
       </View>
       <View style={styles.pad}>
         <View style={styles.card}>
           <Text style={styles.icon}>📝</Text>
-          <Text style={styles.heading}>One quick step before you book</Text>
+          <Text style={styles.heading}>{t("signWaiver.heading")}</Text>
           <Text style={styles.body}>
-            Every player needs to sign our liability waiver once before booking a game.
-            It only takes a minute — tap below to open it, sign it, then come back here.
+            {t("signWaiver.body")}
           </Text>
         </View>
-        <Button title="Sign waiver" onPress={openWaiver} style={{ marginTop: 8 }} />
+        <Button title={t("signWaiver.signWaiver")} onPress={openWaiver} style={{ marginTop: 8 }} />
         <Button
-          title={checking ? "Checking..." : "I've signed it — check again"}
+          title={checking ? t("signWaiver.checking") : t("signWaiver.checkAgain")}
           variant="outline"
           disabled={checking}
           style={{ marginTop: 12 }}

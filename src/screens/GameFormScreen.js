@@ -6,6 +6,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { Button } from "../components/Shared";
+import { useLocale } from "../i18n/LocaleContext";
 
 const FORMATS = ["5v5", "7v7", "9v9", "11v11"];
 // Skill level is temporarily hidden from this form — kept in state/save
@@ -32,6 +33,7 @@ function parseExistingDate(dateStr) {
 }
 
 export default function GameFormScreen({ route, navigation }) {
+  const { t } = useLocale();
   const { gameId } = route.params || {};
   const { games, saveGame } = useApp();
   const existing = gameId ? games.find((g) => g.id === gameId) : null;
@@ -57,7 +59,7 @@ export default function GameFormScreen({ route, navigation }) {
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow photo library access to upload a field photo.");
+      Alert.alert(t("gameForm.permissionNeededTitle"), t("gameForm.permissionNeededBody"));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -72,7 +74,7 @@ export default function GameFormScreen({ route, navigation }) {
 
   const handleSave = () => {
     if (!title.trim() || !venue.trim() || !time.trim()) {
-      Alert.alert("Missing info", "Please fill in title, venue, and time.");
+      Alert.alert(t("gameForm.missingInfoTitle"), t("gameForm.missingInfoBody"));
       return;
     }
     const date = formatGameDate(dateObj);
@@ -98,32 +100,32 @@ export default function GameFormScreen({ route, navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>{existing ? "Edit listing" : "New game or tournament"}</Text>
+        <Text style={styles.title}>{existing ? t("gameForm.editListing") : t("gameForm.newListing")}</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: spacing.lg }}>
-        <FieldLabel>Field photo</FieldLabel>
+        <FieldLabel>{t("gameForm.fieldPhoto")}</FieldLabel>
         <TouchableOpacity style={styles.photoBox} onPress={pickImage}>
           {image ? <Image source={{ uri: image }} style={styles.photoPreview} /> : (
             <View style={{ alignItems: "center" }}>
               <Text style={{ fontSize: 26 }}>📷</Text>
-              <Text style={{ color: colors.slate, fontWeight: "600", fontSize: 12, marginTop: 4 }}>Tap to upload a photo of the field</Text>
+              <Text style={{ color: colors.slate, fontWeight: "600", fontSize: 12, marginTop: 4 }}>{t("gameForm.tapToUpload")}</Text>
             </View>
           )}
         </TouchableOpacity>
 
-        <FieldLabel>Listing type</FieldLabel>
+        <FieldLabel>{t("gameForm.listingType")}</FieldLabel>
         <View style={styles.typeToggle}>
           <TouchableOpacity style={[styles.typeBtn, listingType === "casual" && styles.typeBtnActive]} onPress={() => setListingType("casual")}>
-            <Text style={[styles.typeBtnText, listingType === "casual" && styles.typeBtnTextActive]}>⚽ Casual game</Text>
+            <Text style={[styles.typeBtnText, listingType === "casual" && styles.typeBtnTextActive]}>{t("gameForm.casualGame")}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.typeBtn, listingType === "league" && styles.typeBtnActive]} onPress={() => setListingType("league")}>
-            <Text style={[styles.typeBtnText, listingType === "league" && styles.typeBtnTextActive]}>🏆 League</Text>
+            <Text style={[styles.typeBtnText, listingType === "league" && styles.typeBtnTextActive]}>{t("gameForm.league")}</Text>
           </TouchableOpacity>
         </View>
 
-        <Field label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Tuesday Night Turf League" />
+        <Field label={t("gameForm.titleLabel")} value={title} onChangeText={setTitle} placeholder={t("gameForm.titlePlaceholder")} />
 
-        <FieldLabel>Format</FieldLabel>
+        <FieldLabel>{t("gameForm.format")}</FieldLabel>
         <View style={styles.typeToggle}>
           {FORMATS.map((f) => (
             <TouchableOpacity key={f} style={[styles.typeBtn, format === f && styles.typeBtnActive]} onPress={() => setFormat(f)}>
@@ -132,16 +134,16 @@ export default function GameFormScreen({ route, navigation }) {
           ))}
         </View>
 
-        <Field label="Venue name" value={venue} onChangeText={setVenue} placeholder="e.g. Blanchard Park Fields" />
-        <Field label="Address" value={address} onChangeText={setAddress} placeholder="Street, Orlando" />
+        <Field label={t("gameForm.venueName")} value={venue} onChangeText={setVenue} placeholder={t("gameForm.venuePlaceholder")} />
+        <Field label={t("gameForm.address")} value={address} onChangeText={setAddress} placeholder={t("gameForm.addressPlaceholder")} />
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1, marginBottom: 16 }}>
-            <FieldLabel>Date</FieldLabel>
+            <FieldLabel>{t("gameForm.date")}</FieldLabel>
             <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
               <Text style={{ color: colors.ink, fontSize: 14 }}>{formatGameDate(dateObj)}</Text>
             </TouchableOpacity>
           </View>
-          <Field label="Time" value={time} onChangeText={setTime} placeholder="e.g. 19:00" style={{ flex: 1 }} />
+          <Field label={t("gameForm.time")} value={time} onChangeText={setTime} placeholder={t("gameForm.timePlaceholder")} style={{ flex: 1 }} />
         </View>
         {showDatePicker && (
           <DateTimePicker
@@ -152,30 +154,30 @@ export default function GameFormScreen({ route, navigation }) {
           />
         )}
         {showDatePicker && Platform.OS === "ios" && (
-          <Button title="Done" variant="outline" style={{ marginBottom: 16 }} onPress={() => setShowDatePicker(false)} />
+          <Button title={t("common.done")} variant="outline" style={{ marginBottom: 16 }} onPress={() => setShowDatePicker(false)} />
         )}
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <Field label="Display price" value={price} onChangeText={setPrice} placeholder="e.g. $15" style={{ flex: 1 }} />
-          <Field label="Total slots" value={slots} onChangeText={setSlots} keyboardType="number-pad" style={{ flex: 1 }} />
+          <Field label={t("gameForm.displayPrice")} value={price} onChangeText={setPrice} placeholder={t("gameForm.pricePlaceholder")} style={{ flex: 1 }} />
+          <Field label={t("gameForm.totalSlots")} value={slots} onChangeText={setSlots} keyboardType="number-pad" style={{ flex: 1 }} />
         </View>
 
         <View style={styles.pricingCard}>
-          <FieldLabel>Player costs — {listingType === "league" ? "league" : "casual"}</FieldLabel>
+          <FieldLabel>{listingType === "league" ? t("gameForm.playerCostsLeague") : t("gameForm.playerCostsCasual")}</FieldLabel>
           {listingType === "league" ? (
             <>
-              <Field label="League player fee (per season)" value={leagueFee} onChangeText={setLeagueFee} placeholder="e.g. $150" />
-              <Field label="Substitute fee (per game)" value={subFee} onChangeText={setSubFee} placeholder="e.g. $20" />
+              <Field label={t("gameForm.leagueFeeLabel")} value={leagueFee} onChangeText={setLeagueFee} placeholder={t("gameForm.leagueFeePlaceholder")} />
+              <Field label={t("gameForm.subFeeLabel")} value={subFee} onChangeText={setSubFee} placeholder={t("gameForm.subFeePlaceholder")} />
             </>
           ) : (
             <>
-              <Field label="Drop-in price (one-off, per game)" value={dropInFee} onChangeText={setDropInFee} placeholder="e.g. $15" />
-              <Field label="Monthly price (regular weekly slot)" value={monthlyFee} onChangeText={setMonthlyFee} placeholder="e.g. $45" />
+              <Field label={t("gameForm.dropInFeeLabel")} value={dropInFee} onChangeText={setDropInFee} placeholder={t("gameForm.dropInFeePlaceholder")} />
+              <Field label={t("gameForm.monthlyFeeLabel")} value={monthlyFee} onChangeText={setMonthlyFee} placeholder={t("gameForm.monthlyFeePlaceholder")} />
             </>
           )}
         </View>
 
-        <Button title={existing ? "Save changes" : "Publish listing"} onPress={handleSave} style={{ marginTop: 8 }} />
-        <Button title="Cancel" variant="ghost" style={{ marginTop: 10 }} onPress={() => navigation.goBack()} />
+        <Button title={existing ? t("gameForm.saveChanges") : t("gameForm.publishListing")} onPress={handleSave} style={{ marginTop: 8 }} />
+        <Button title={t("common.cancel")} variant="ghost" style={{ marginTop: 10 }} onPress={() => navigation.goBack()} />
       </ScrollView>
     </SafeAreaView>
   );

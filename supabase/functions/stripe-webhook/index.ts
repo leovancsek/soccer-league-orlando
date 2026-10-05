@@ -44,11 +44,20 @@ serve(async (req) => {
       const session = event.data.object;
       const bookingId = session.metadata?.booking_id;
       if (bookingId) {
-        await supabaseAdmin
+        const { data: updated } = await supabaseAdmin
           .from("bookings")
           .update({ status: "confirmed" })
           .eq("id", bookingId)
-          .eq("stripe_checkout_session_id", session.id);
+          .eq("stripe_checkout_session_id", session.id)
+          .select("discount_code_id")
+          .single();
+
+        // Only consumed now, on actual payment success — an abandoned
+        // checkout never burns a redemption. consume_discount_code is
+        // atomic and refuses if max_uses was hit by a concurrent booking.
+        if (updated?.discount_code_id) {
+          await supabaseAdmin.rpc("consume_discount_code", { p_discount_code_id: updated.discount_code_id });
+        }
       }
     }
 

@@ -7,8 +7,10 @@ import { supabase } from "../lib/supabase";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Button, HeaderLogo } from "../components/Shared";
 import { ROSTER_CONFIG } from "../data/seedData";
+import { useLocale } from "../i18n/LocaleContext";
 
 export default function AdminScreen({ navigation }) {
+  const { t } = useLocale();
   const {
     games, users, features, toggleUserStatus, toggleFeature, addRosterPlayer, removeRosterPlayer, deleteGame,
     whatsappGroupUrl, setWhatsappGroupUrl,
@@ -20,6 +22,15 @@ export default function AdminScreen({ navigation }) {
   const [accounts, setAccounts] = useState([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [overridingId, setOverridingId] = useState(null);
+  const [discounts, setDiscounts] = useState([]);
+  const [loadingDiscounts, setLoadingDiscounts] = useState(false);
+  const [discountBusyId, setDiscountBusyId] = useState(null);
+  const [newCode, setNewCode] = useState("");
+  const [newType, setNewType] = useState("percent");
+  const [newValue, setNewValue] = useState("");
+  const [newExpiresAt, setNewExpiresAt] = useState("");
+  const [newMaxUses, setNewMaxUses] = useState("");
+  const [creatingDiscount, setCreatingDiscount] = useState(false);
   const activeUsers = users.filter((u) => u.status === "active").length;
   const enabledFeatures = features.filter((f) => f.enabled).length;
 
@@ -37,19 +48,93 @@ export default function AdminScreen({ navigation }) {
     if (section === "waivers") loadAccounts();
   }, [section, loadAccounts]);
 
+  const loadDiscounts = useCallback(async () => {
+    setLoadingDiscounts(true);
+    const { data, error } = await supabase
+      .from("discount_codes")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setLoadingDiscounts(false);
+    if (!error) setDiscounts(data);
+  }, []);
+
+  useEffect(() => {
+    if (section === "discounts") loadDiscounts();
+  }, [section, loadDiscounts]);
+
+  const createDiscount = async () => {
+    const code = newCode.trim().toUpperCase();
+    const value = parseInt(newValue, 10);
+    if (!code || !value || value <= 0) {
+      Alert.alert(t("admin.discountInvalidTitle"), t("admin.discountInvalidBody"));
+      return;
+    }
+    if (newType === "percent" && value > 100) {
+      Alert.alert(t("admin.discountInvalidTitle"), t("admin.discountPercentTooHigh"));
+      return;
+    }
+    const maxUses = newMaxUses.trim() ? parseInt(newMaxUses, 10) : null;
+    const expiresAt = newExpiresAt.trim() ? new Date(newExpiresAt.trim()) : null;
+    if (newExpiresAt.trim() && isNaN(expiresAt?.getTime())) {
+      Alert.alert(t("admin.discountInvalidTitle"), t("admin.discountInvalidDate"));
+      return;
+    }
+    setCreatingDiscount(true);
+    const { error } = await supabase.from("discount_codes").insert({
+      code,
+      discount_type: newType,
+      discount_value: value,
+      max_uses: maxUses,
+      expires_at: expiresAt ? expiresAt.toISOString() : null,
+      created_by: profile?.id,
+    });
+    setCreatingDiscount(false);
+    if (error) {
+      Alert.alert(t("admin.couldntCreateDiscount"), error.message);
+      return;
+    }
+    setNewCode(""); setNewValue(""); setNewExpiresAt(""); setNewMaxUses("");
+    loadDiscounts();
+  };
+
+  const toggleDiscountActive = async (d) => {
+    setDiscountBusyId(d.id);
+    const { error } = await supabase.from("discount_codes").update({ active: !d.active }).eq("id", d.id);
+    setDiscountBusyId(null);
+    if (error) Alert.alert(t("admin.couldntUpdate"), error.message);
+    else loadDiscounts();
+  };
+
+  const deleteDiscount = (d) => {
+    Alert.alert(t("admin.deleteDiscountTitle"), t("admin.deleteDiscountBody", d.code), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("common.delete"),
+        style: "destructive",
+        onPress: async () => {
+          setDiscountBusyId(d.id);
+          const { error } = await supabase.from("discount_codes").delete().eq("id", d.id);
+          setDiscountBusyId(null);
+          if (error) Alert.alert(t("admin.couldntUpdate"), error.message);
+          else loadDiscounts();
+        },
+      },
+    ]);
+  };
+
   const overrideWaiver = (account) => {
     Alert.alert(
-      "Mark waiver as accepted?",
-      `Only do this if ${account.name} actually signed a waiver outside the app (e.g. on paper at the field).`,
+      t("admin.overrideWaiverTitle"),
+      t("admin.overrideWaiverBody", account.name),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Confirm",
+          text: t("common.confirm"),
           onPress: async () => {
             setOverridingId(account.id);
             const { error } = await supabase.rpc("admin_accept_waiver", { target_user_id: account.id });
             setOverridingId(null);
-            if (error) Alert.alert("Couldn't update", error.message);
+            if (error) Alert.alert(t("admin.couldntUpdate"), error.message);
             else loadAccounts();
           },
         },
@@ -63,12 +148,12 @@ export default function AdminScreen({ navigation }) {
   // out mid-session; use a different super admin's account for that.
   const setRole = (account, nextIsAdmin, nextIsSuperAdmin, label) => {
     Alert.alert(
-      `${label} for ${account.name}?`,
-      "This changes what they can access next time they open the app.",
+      t("admin.setRoleTitle", label, account.name),
+      t("admin.setRoleBody"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Confirm",
+          text: t("common.confirm"),
           onPress: async () => {
             setOverridingId(account.id);
             const { error } = await supabase.rpc("admin_set_role", {
@@ -77,7 +162,7 @@ export default function AdminScreen({ navigation }) {
               new_is_super_admin: nextIsSuperAdmin,
             });
             setOverridingId(null);
-            if (error) Alert.alert("Couldn't update role", error.message);
+            if (error) Alert.alert(t("admin.couldntUpdateRole"), error.message);
             else loadAccounts();
           },
         },
@@ -87,13 +172,21 @@ export default function AdminScreen({ navigation }) {
 
   const promptAddPlayer = (gameId, rosterDef) => {
     if (Platform.OS === "ios") {
-      Alert.prompt(rosterDef.label, "Full name", (name) => {
+      Alert.prompt(rosterDef.label, t("admin.addPlayerFullName"), (name) => {
         if (name && name.trim()) addRosterPlayer(gameId, rosterDef.key, name.trim());
       });
     } else {
       // Android has no built-in text-prompt Alert; a real app would use a Modal + TextInput here.
-      Alert.alert(rosterDef.label, "Adding players on Android uses an in-app form modal — same addRosterPlayer() call as iOS.");
+      Alert.alert(rosterDef.label, t("admin.androidAddPlayerBody"));
     }
+  };
+
+  const sectionLabels = {
+    games: t("admin.secGames"),
+    users: t("admin.secUsers"),
+    waivers: t("admin.secWaivers"),
+    discounts: t("admin.secDiscounts"),
+    features: t("admin.secFeatures"),
   };
 
   return (
@@ -101,29 +194,29 @@ export default function AdminScreen({ navigation }) {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <HeaderLogo size={26} />
-          <Text style={styles.title}>Admin</Text>
+          <Text style={styles.title}>{t("admin.title")}</Text>
         </View>
-        <Text style={styles.sub}>Manage games, users and platform features</Text>
+        <Text style={styles.sub}>{t("admin.subtitle")}</Text>
         <View style={styles.segment}>
-          {["games", "users", "waivers", ...(isSuperAdmin ? ["features"] : [])].map((s) => (
+          {["games", "users", "waivers", "discounts", ...(isSuperAdmin ? ["features"] : [])].map((s) => (
             <TouchableOpacity key={s} style={[styles.segBtn, section === s && styles.segBtnActive]} onPress={() => setSection(s)}>
-              <Text style={[styles.segText, section === s && styles.segTextActive]}>{s[0].toUpperCase() + s.slice(1)}</Text>
+              <Text style={[styles.segText, section === s && styles.segTextActive]}>{sectionLabels[s]}</Text>
             </TouchableOpacity>
           ))}
         </View>
       </View>
 
       <View style={styles.statsRow}>
-        <StatBox n={games.length} l="Total games" />
-        <StatBox n={activeUsers} l="Active users" />
-        <StatBox n={`${enabledFeatures}/${features.length}`} l="Features on" />
+        <StatBox n={games.length} l={t("admin.statTotalGames")} />
+        <StatBox n={activeUsers} l={t("admin.statActiveUsers")} />
+        <StatBox n={`${enabledFeatures}/${features.length}`} l={t("admin.statFeaturesOn")} />
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 30 }}>
         {section === "games" && (
           <>
             <Button
-              title="+ Create game or tournament"
+              title={t("admin.createGame")}
               variant="turf"
               style={{ marginHorizontal: spacing.lg, marginTop: 6, marginBottom: 4 }}
               onPress={() => navigation.navigate("GameForm", { gameId: null })}
@@ -135,21 +228,21 @@ export default function AdminScreen({ navigation }) {
               return (
                 <View key={g.id} style={styles.gameCard}>
                   {g.image ? <Image source={{ uri: g.image }} style={styles.gameImg} /> : (
-                    <View style={styles.noImg}><Text style={{ color: "rgba(255,255,255,0.7)" }}>📷 No field photo yet</Text></View>
+                    <View style={styles.noImg}><Text style={{ color: "rgba(255,255,255,0.7)" }}>{t("admin.noFieldPhoto")}</Text></View>
                   )}
                   <View style={{ padding: 14 }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       <Text style={styles.gameTitle}>{g.title}</Text>
                       <View style={[styles.typePill, { backgroundColor: g.listingType === "league" ? colors.turf : colors.slate }]}>
-                        <Text style={styles.typePillText}>{g.listingType === "league" ? "League" : "Casual"}</Text>
+                        <Text style={styles.typePillText}>{g.listingType === "league" ? t("admin.league") : t("admin.casual")}</Text>
                       </View>
                     </View>
                     <Text style={styles.gameMeta}>{g.format} · {g.venue} · {g.date} · {g.time}</Text>
 
                     <View style={{ marginTop: 10 }}>
                       <View style={styles.slotsLabelRow}>
-                        <Text style={styles.slotsLabel}>Slots filled</Text>
-                        <Text style={styles.slotsValue}>{g.spotsFilled}/{g.spotsTotal} · {left} available</Text>
+                        <Text style={styles.slotsLabel}>{t("admin.slotsFilled")}</Text>
+                        <Text style={styles.slotsValue}>{g.spotsFilled}/{g.spotsTotal} · {t("admin.available", left)}</Text>
                       </View>
                       <View style={styles.track}>
                         <View style={[styles.fill, { width: `${pct}%`, backgroundColor: left <= 0 ? colors.warn : colors.turf }]} />
@@ -174,21 +267,21 @@ export default function AdminScreen({ navigation }) {
                             </View>
                           ))}
                           <TouchableOpacity style={styles.addChip} onPress={() => promptAddPlayer(g.id, r)}>
-                            <Text style={styles.addChipText}>+ Add player</Text>
+                            <Text style={styles.addChipText}>{t("admin.addPlayer")}</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
                     ))}
 
                     <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
-                      <Button title="Edit" variant="outline" style={{ flex: 1, paddingVertical: 9 }} onPress={() => navigation.navigate("GameForm", { gameId: g.id })} />
+                      <Button title={t("common.edit")} variant="outline" style={{ flex: 1, paddingVertical: 9 }} onPress={() => navigation.navigate("GameForm", { gameId: g.id })} />
                       <Button
-                        title="Delete"
+                        title={t("common.delete")}
                         variant="danger"
                         style={{ flex: 1, paddingVertical: 9 }}
-                        onPress={() => Alert.alert("Delete listing?", `"${g.title}" can't be undone.`, [
-                          { text: "Cancel", style: "cancel" },
-                          { text: "Delete", style: "destructive", onPress: () => deleteGame(g.id) },
+                        onPress={() => Alert.alert(t("admin.deleteListingTitle"), t("admin.deleteListingBody", g.title), [
+                          { text: t("common.cancel"), style: "cancel" },
+                          { text: t("common.delete"), style: "destructive", onPress: () => deleteGame(g.id) },
                         ])}
                       />
                     </View>
@@ -210,10 +303,10 @@ export default function AdminScreen({ navigation }) {
                 </View>
               </View>
               <Text style={{ fontSize: 12, color: colors.slate, marginTop: 1 }}>{u.email}</Text>
-              <Text style={{ fontSize: 11, color: colors.slate, marginTop: 2 }}>Joined {u.joined} · {u.gamesPlayed} games played</Text>
+              <Text style={{ fontSize: 11, color: colors.slate, marginTop: 2 }}>{t("admin.joinedGames", u.joined, u.gamesPlayed)}</Text>
             </View>
             <Button
-              title={u.status === "active" ? "Disable" : "Enable"}
+              title={u.status === "active" ? t("admin.disable") : t("admin.enable")}
               variant={u.status === "active" ? "danger" : "outline"}
               style={{ paddingHorizontal: 12, paddingVertical: 8 }}
               onPress={() => toggleUserStatus(u.id)}
@@ -223,18 +316,13 @@ export default function AdminScreen({ navigation }) {
 
         {section === "waivers" && (
           <View style={{ paddingHorizontal: spacing.lg, marginTop: 10 }}>
-            <Text style={styles.waiverNote}>
-              Real signed-in accounts, their Smartwaiver status{isSuperAdmin ? ", and their role" : ""}.
-              Use "Mark as accepted" only when someone signed a waiver outside the app (paper form, etc.) —
-              everyone else is confirmed automatically by Smartwaiver once they sign in-app.
-              {isSuperAdmin ? " Super admin can't be granted from here, by policy — only removed." : ""}
-            </Text>
-            {loadingAccounts && <Text style={{ color: colors.slate, marginTop: 10 }}>Loading...</Text>}
+            <Text style={styles.waiverNote}>{t("admin.waiverNote", isSuperAdmin)}</Text>
+            {loadingAccounts && <Text style={{ color: colors.slate, marginTop: 10 }}>{t("common.loading")}</Text>}
             {!loadingAccounts && accounts.length === 0 && (
-              <Text style={{ color: colors.slate, marginTop: 10 }}>No accounts yet.</Text>
+              <Text style={{ color: colors.slate, marginTop: 10 }}>{t("admin.noAccountsYet")}</Text>
             )}
             {accounts.map((a) => {
-              const roleLabel = a.is_super_admin ? "Super admin" : a.is_admin ? "Admin" : "Player";
+              const roleLabel = a.is_super_admin ? t("admin.roleSuperAdmin") : a.is_admin ? t("admin.roleAdmin") : t("admin.rolePlayer");
               const isSelf = a.id === profile?.id;
               const busy = overridingId === a.id;
               return (
@@ -251,12 +339,12 @@ export default function AdminScreen({ navigation }) {
                         )}
                       </View>
                       <Text style={{ fontSize: 11.5, color: a.waiver_accepted ? colors.turf : colors.warn, fontWeight: "600", marginTop: 2 }}>
-                        {a.waiver_accepted ? "✓ Waiver signed" : "Waiver not signed"}
+                        {a.waiver_accepted ? t("admin.waiverSigned") : t("admin.waiverNotSigned")}
                       </Text>
                     </View>
                     {!a.waiver_accepted && (
                       <Button
-                        title={busy ? "..." : "Mark as accepted"}
+                        title={busy ? "..." : t("admin.markAsAccepted")}
                         variant="outline"
                         disabled={busy}
                         style={{ paddingHorizontal: 12, paddingVertical: 8 }}
@@ -269,35 +357,144 @@ export default function AdminScreen({ navigation }) {
                     <View style={styles.roleActions}>
                       {a.is_admin ? (
                         <Button
-                          title="Remove admin"
+                          title={t("admin.removeAdmin")}
                           variant="danger"
                           disabled={busy}
                           style={styles.roleActionBtn}
-                          onPress={() => setRole(a, false, false, "Remove admin access")}
+                          onPress={() => setRole(a, false, false, t("admin.removeAdminAccessLabel"))}
                         />
                       ) : (
                         <Button
-                          title="Make admin"
+                          title={t("admin.makeAdmin")}
                           variant="outline"
                           disabled={busy}
                           style={styles.roleActionBtn}
-                          onPress={() => setRole(a, true, false, "Grant admin access")}
+                          onPress={() => setRole(a, true, false, t("admin.grantAdminAccessLabel"))}
                         />
                       )}
                       {a.is_super_admin && (
                         <Button
-                          title="Remove super admin"
+                          title={t("admin.removeSuperAdmin")}
                           variant="danger"
                           disabled={busy}
                           style={styles.roleActionBtn}
-                          onPress={() => setRole(a, true, false, "Remove super admin")}
+                          onPress={() => setRole(a, true, false, t("admin.removeSuperAdminLabel"))}
                         />
                       )}
                     </View>
                   )}
                   {isSuperAdmin && isSelf && (
-                    <Text style={styles.selfNote}>You can't change your own role here — ask another super admin.</Text>
+                    <Text style={styles.selfNote}>{t("admin.selfNote")}</Text>
                   )}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        {section === "discounts" && (
+          <View style={{ paddingHorizontal: spacing.lg, marginTop: 10 }}>
+            <View style={styles.waEditCard}>
+              <Text style={styles.rosterTitle}>{t("admin.newDiscountTitle")}</Text>
+              <TextInput
+                style={styles.waInput}
+                placeholder={t("admin.discountCodePlaceholder")}
+                placeholderTextColor={colors.slate}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                value={newCode}
+                onChangeText={setNewCode}
+              />
+              <View style={styles.discountTypeRow}>
+                <TouchableOpacity
+                  style={[styles.discountTypeBtn, newType === "percent" && styles.discountTypeBtnActive]}
+                  onPress={() => setNewType("percent")}
+                >
+                  <Text style={[styles.discountTypeText, newType === "percent" && styles.discountTypeTextActive]}>{t("admin.discountTypePercent")}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.discountTypeBtn, newType === "fixed" && styles.discountTypeBtnActive]}
+                  onPress={() => setNewType("fixed")}
+                >
+                  <Text style={[styles.discountTypeText, newType === "fixed" && styles.discountTypeTextActive]}>{t("admin.discountTypeFixed")}</Text>
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={styles.waInput}
+                placeholder={newType === "percent" ? t("admin.discountValuePercentPlaceholder") : t("admin.discountValueFixedPlaceholder")}
+                placeholderTextColor={colors.slate}
+                keyboardType="number-pad"
+                value={newValue}
+                onChangeText={setNewValue}
+              />
+              <TextInput
+                style={styles.waInput}
+                placeholder={t("admin.discountExpiresPlaceholder")}
+                placeholderTextColor={colors.slate}
+                autoCapitalize="none"
+                value={newExpiresAt}
+                onChangeText={setNewExpiresAt}
+              />
+              <TextInput
+                style={styles.waInput}
+                placeholder={t("admin.discountMaxUsesPlaceholder")}
+                placeholderTextColor={colors.slate}
+                keyboardType="number-pad"
+                value={newMaxUses}
+                onChangeText={setNewMaxUses}
+              />
+              <Button
+                title={creatingDiscount ? "..." : t("admin.createDiscount")}
+                variant="turf"
+                disabled={creatingDiscount}
+                style={{ marginTop: 10 }}
+                onPress={createDiscount}
+              />
+            </View>
+
+            {loadingDiscounts && <Text style={{ color: colors.slate, marginTop: 10 }}>{t("common.loading")}</Text>}
+            {!loadingDiscounts && discounts.length === 0 && (
+              <Text style={{ color: colors.slate, marginTop: 10 }}>{t("admin.noDiscountsYet")}</Text>
+            )}
+            {discounts.map((d) => {
+              const expired = d.expires_at && new Date(d.expires_at) < new Date();
+              const usedUp = d.max_uses != null && d.uses_count >= d.max_uses;
+              const busy = discountBusyId === d.id;
+              return (
+                <View key={d.id} style={styles.waiverCard}>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View>
+                      <Text style={{ fontWeight: "700", color: colors.ink, fontSize: 15 }}>{d.code}</Text>
+                      <Text style={{ fontSize: 12, color: colors.turf, fontWeight: "600", marginTop: 2 }}>
+                        {d.discount_type === "percent" ? t("admin.discountOffPercent", d.discount_value) : t("admin.discountOffFixed", d.discount_value)}
+                      </Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: colors.chalk }]}>
+                      <Text style={{ fontSize: 9.5, fontWeight: "700", color: d.active && !expired && !usedUp ? colors.turf : colors.warn, textTransform: "uppercase" }}>
+                        {!d.active ? t("admin.discountStatusOff") : expired ? t("admin.discountStatusExpired") : usedUp ? t("admin.discountStatusUsedUp") : t("admin.discountStatusActive")}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 11.5, color: colors.slate, marginTop: 6 }}>
+                    {t("admin.discountUses", d.uses_count, d.max_uses ?? "∞")}
+                    {d.expires_at ? ` · ${t("admin.discountExpires", new Date(d.expires_at).toLocaleDateString())}` : ""}
+                  </Text>
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                    <Button
+                      title={d.active ? t("admin.discountTurnOff") : t("admin.discountTurnOn")}
+                      variant="outline"
+                      disabled={busy}
+                      style={{ flex: 1, paddingVertical: 8 }}
+                      onPress={() => toggleDiscountActive(d)}
+                    />
+                    <Button
+                      title={t("common.delete")}
+                      variant="danger"
+                      disabled={busy}
+                      style={{ flex: 1, paddingVertical: 8 }}
+                      onPress={() => deleteDiscount(d)}
+                    />
+                  </View>
                 </View>
               );
             })}
@@ -306,18 +503,18 @@ export default function AdminScreen({ navigation }) {
 
         {section === "features" && isSuperAdmin && (
           <View style={styles.waEditCard}>
-            <Text style={styles.rosterTitle}>WhatsApp announcements group</Text>
-            <Text style={styles.rosterSub}>Shown as a banner on every player's Messages tab</Text>
+            <Text style={styles.rosterTitle}>{t("admin.whatsappGroupTitle")}</Text>
+            <Text style={styles.rosterSub}>{t("admin.whatsappGroupSub")}</Text>
             <TextInput
               style={styles.waInput}
-              placeholder="https://chat.whatsapp.com/..."
+              placeholder={t("admin.whatsappPlaceholder")}
               placeholderTextColor={colors.slate}
               autoCapitalize="none"
               value={waInput}
               onChangeText={setWaInput}
             />
             <Button
-              title="Save"
+              title={t("common.save")}
               variant="turf"
               style={{ marginTop: 10 }}
               onPress={() => setWhatsappGroupUrl(waInput.trim() || null)}
@@ -398,4 +595,9 @@ const styles = StyleSheet.create({
   roleActionBtn: { flexGrow: 1, paddingHorizontal: 10, paddingVertical: 8 },
   selfNote: { fontSize: 11, color: colors.slate, fontStyle: "italic", marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderColor: colors.line, borderStyle: "dashed" },
   waInput: { marginTop: 10, backgroundColor: colors.chalk, borderWidth: 1.5, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, fontSize: 13, color: colors.ink },
+  discountTypeRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  discountTypeBtn: { flex: 1, alignItems: "center", paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.chalk },
+  discountTypeBtnActive: { backgroundColor: colors.turf, borderColor: colors.turf },
+  discountTypeText: { fontSize: 12.5, fontWeight: "700", color: colors.slate },
+  discountTypeTextActive: { color: "#fff" },
 });

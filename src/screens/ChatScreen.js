@@ -3,10 +3,11 @@ import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Keyboard
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
-
-const REPORT_REASONS = ["Spam", "Harassment or abuse", "Inappropriate content", "Other"];
+import { useLocale } from "../i18n/LocaleContext";
 
 export default function ChatScreen({ route, navigation }) {
+  const { t } = useLocale();
+  const REPORT_REASONS = [t("chat.reasonSpam"), t("chat.reasonHarassment"), t("chat.reasonInappropriate"), t("chat.reasonOther")];
   const { conversationId } = route.params;
   const { conversations, sendMessage, markRead, reportUser, blockUser } = useApp();
   const convo = conversations.find((c) => c.id === conversationId);
@@ -24,34 +25,34 @@ export default function ChatScreen({ route, navigation }) {
 
   const handleReport = () => {
     Alert.alert(
-      `Report ${convo.name}?`,
-      "What's the issue?",
+      t("chat.reportTitle", convo.name),
+      t("chat.reportQuestion"),
       [
         ...REPORT_REASONS.map((reason) => ({
           text: reason,
           onPress: async () => {
             const { error } = await reportUser(convo.name, reason);
-            if (error) Alert.alert("Couldn't send report", error);
-            else Alert.alert("Report submitted", "Thanks — our team will review this.");
+            if (error) Alert.alert(t("chat.couldntSendReport"), error);
+            else Alert.alert(t("chat.reportSubmittedTitle"), t("chat.reportSubmittedBody"));
           },
         })),
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
       ]
     );
   };
 
   const handleBlock = () => {
     Alert.alert(
-      `Block ${convo.name}?`,
-      "You won't see messages from them anymore. You can unblock them later from the Messages tab.",
+      t("chat.blockTitle", convo.name),
+      t("chat.blockBody"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Block",
+          text: t("chat.block"),
           style: "destructive",
           onPress: async () => {
             const { error } = await blockUser(convo.name);
-            if (error) Alert.alert("Couldn't block", error);
+            if (error) Alert.alert(t("chat.couldntBlock"), error);
             else navigation.goBack();
           },
         },
@@ -61,9 +62,9 @@ export default function ChatScreen({ route, navigation }) {
 
   const handleMoreOptions = () => {
     Alert.alert(convo.name, undefined, [
-      { text: "Report", onPress: handleReport },
-      { text: "Block", style: "destructive", onPress: handleBlock },
-      { text: "Cancel", style: "cancel" },
+      { text: t("chat.report"), onPress: handleReport },
+      { text: t("chat.block"), style: "destructive", onPress: handleBlock },
+      { text: t("common.cancel"), style: "cancel" },
     ]);
   };
 
@@ -93,7 +94,7 @@ export default function ChatScreen({ route, navigation }) {
         <View style={styles.inputBar}>
           <TextInput
             style={styles.input}
-            placeholder="Message the organizer..." placeholderTextColor={colors.slate}
+            placeholder={t("chat.inputPlaceholder")} placeholderTextColor={colors.slate}
             value={text}
             onChangeText={setText}
             onSubmitEditing={handleSend}

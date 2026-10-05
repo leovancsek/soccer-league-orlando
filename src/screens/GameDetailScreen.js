@@ -1,18 +1,21 @@
 import React, { useState } from "react";
-import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { View, Text, Image, ScrollView, StyleSheet, ActivityIndicator, Alert, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { useAuth } from "../context/AuthContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { Avatar, Badge, Button } from "../components/Shared";
 import { ROSTER_CONFIG } from "../data/seedData";
+import { useLocale } from "../i18n/LocaleContext";
 
 export default function GameDetailScreen({ route, navigation }) {
+  const { t } = useLocale();
   const { gameId } = route.params;
   const { games, myBookings, initiatePayment, openOrCreateConversation } = useApp();
   const { profile } = useAuth();
   const game = games.find((g) => g.id === gameId);
   const [paying, setPaying] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
   if (!game) return null;
 
   const left = game.spotsTotal - game.spotsFilled;
@@ -31,11 +34,11 @@ export default function GameDetailScreen({ route, navigation }) {
       return;
     }
     setPaying(true);
-    const result = await initiatePayment(game);
+    const result = await initiatePayment(game, discountCode.trim());
     setPaying(false);
-    if (result.error) Alert.alert("Couldn't start checkout", result.error);
-    else if (result.cancelled) Alert.alert("Checkout cancelled", "Your slot wasn't charged, so it's been released.");
-    else Alert.alert("You're in!", "Payment received — see you on the pitch.");
+    if (result.error) Alert.alert(t("gameDetail.couldntStartCheckout"), result.error);
+    else if (result.cancelled) Alert.alert(t("gameDetail.checkoutCancelledTitle"), t("gameDetail.checkoutCancelledBody"));
+    else Alert.alert(t("gameDetail.bookedTitle"), t("gameDetail.bookedBody"));
   };
 
   return (
@@ -50,14 +53,14 @@ export default function GameDetailScreen({ route, navigation }) {
 
         <View style={styles.pad}>
           <View style={styles.card}>
-            <InfoLine label="Venue" value={`${game.venue}\n${game.address}`} />
-            <InfoLine label="Date & Time" value={`${game.date} · ${game.time}`} />
-            <InfoLine label="Price per player" value={game.price} />
-            <InfoLine label="Skill level" value={game.level} last />
+            <InfoLine label={t("gameDetail.venue")} value={`${game.venue}\n${game.address}`} />
+            <InfoLine label={t("gameDetail.dateTime")} value={`${game.date} · ${game.time}`} />
+            <InfoLine label={t("gameDetail.pricePerPlayer")} value={game.price} />
+            <InfoLine label={t("gameDetail.skillLevel")} value={game.level} last />
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Player costs {game.listingType === "league" ? "— League" : "— Casual"}</Text>
+            <Text style={styles.cardLabel}>{game.listingType === "league" ? t("gameDetail.playerCostsLeague") : t("gameDetail.playerCostsCasual")}</Text>
             {rosters.map((r) => (
               <View key={r.key} style={styles.costRow}>
                 <Text style={styles.costLabel}>{r.label}</Text>
@@ -72,15 +75,15 @@ export default function GameDetailScreen({ route, navigation }) {
                 <Avatar name={game.organizer.name} size={38} />
                 <View>
                   <Text style={{ fontWeight: "700", color: colors.ink }}>{game.organizer.name}</Text>
-                  <Text style={{ color: colors.slate, fontSize: 12 }}>★ {game.organizer.rating} organizer rating</Text>
+                  <Text style={{ color: colors.slate, fontSize: 12 }}>{t("gameDetail.organizerRating", game.organizer.rating)}</Text>
                 </View>
               </View>
-              <Button title="Message" variant="outline" style={{ paddingHorizontal: 16, paddingVertical: 9 }} onPress={handleMessage} />
+              <Button title={t("common.message")} variant="outline" style={{ paddingHorizontal: 16, paddingVertical: 9 }} onPress={handleMessage} />
             </View>
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Players joined ({game.spotsFilled}/{game.spotsTotal})</Text>
+            <Text style={styles.cardLabel}>{t("gameDetail.playersJoined", game.spotsFilled, game.spotsTotal)}</Text>
             <View style={styles.playersGrid}>
               {game.players.map((p, i) => (
                 <View key={i} style={styles.playerChip}><Avatar name={p} size={40} /></View>
@@ -91,15 +94,26 @@ export default function GameDetailScreen({ route, navigation }) {
       </ScrollView>
 
       <View style={styles.stickyBar}>
+        {!booked && !full && (
+          <TextInput
+            style={styles.discountInput}
+            placeholder={t("gameDetail.discountCodePlaceholder")}
+            placeholderTextColor={colors.slate}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            value={discountCode}
+            onChangeText={setDiscountCode}
+          />
+        )}
         {booked ? (
-          <Button title="✓ You're booked in" variant="outline" disabled style={{ width: "100%" }} />
+          <Button title={t("gameDetail.bookedIn")} variant="outline" disabled style={{ width: "100%" }} />
         ) : full ? (
-          <Button title="Game is full" variant="ghost" disabled style={{ width: "100%", backgroundColor: colors.line }} />
+          <Button title={t("gameDetail.gameFull")} variant="ghost" disabled style={{ width: "100%", backgroundColor: colors.line }} />
         ) : paying ? (
           <View style={{ width: "100%", alignItems: "center", paddingVertical: 14 }}><ActivityIndicator color={colors.turf} /></View>
         ) : (
           <Button
-            title={profile?.waiver_accepted ? `Book this slot — pay ${game.price}` : "Sign waiver to book"}
+            title={profile?.waiver_accepted ? t("gameDetail.bookSlot", game.price) : t("gameDetail.signWaiverToBook")}
             onPress={handleBookAndPay}
             style={{ width: "100%" }}
           />
@@ -138,4 +152,5 @@ const styles = StyleSheet.create({
   playersGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 8 },
   playerChip: { alignItems: "center" },
   stickyBar: { padding: spacing.lg, borderTopWidth: 1, borderColor: colors.line, backgroundColor: colors.chalk },
+  discountInput: { borderWidth: 1.5, borderColor: colors.line, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, color: colors.ink, backgroundColor: colors.card, marginBottom: 10, fontSize: 13 },
 });

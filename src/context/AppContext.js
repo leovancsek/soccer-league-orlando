@@ -75,7 +75,7 @@ export function AppProvider({ children }) {
   // slot immediately (optimistic — feels instant), then redirects to Stripe
   // Checkout to collect payment. If payment fails/cancels, call
   // cancelBooking(gameId) to release the slot again (see PaymentResultScreen).
-  const initiatePayment = useCallback(async (game) => {
+  const initiatePayment = useCallback(async (game, discountCode) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return { error: "You must be signed in to book a game." };
 
@@ -85,9 +85,17 @@ export function AppProvider({ children }) {
         gameTitle: game.title,
         priceLabel: game.price,
         amountCents: priceToCents(game.price),
+        discountCode: discountCode || undefined,
       },
     });
-    if (error) return { error: error.message };
+    if (error) {
+      // FunctionsHttpError's .message is a generic "non-2xx status code"
+      // string — the actual reason (e.g. "This code has expired.") is in
+      // the response body, reachable via error.context.
+      const body = await error.context?.json?.().catch(() => null);
+      return { error: body?.error || error.message };
+    }
+    if (data?.error) return { error: data.error };
 
     // Reserve the slot locally right away so the UI reflects it while the
     // user is in the Stripe browser tab.
@@ -197,10 +205,8 @@ export function AppProvider({ children }) {
     return convo;
   }, []);
 
-  const visibleConversations = conversations.filter((c) => !blockedNames.includes(c.name));
-
   const value = {
-    games, users, features, conversations: visibleConversations, myBookings, whatsappGroupUrl,
+    games, users, features, conversations, myBookings, whatsappGroupUrl,
     bookGame, initiatePayment, cancelBooking, toggleUserStatus, toggleFeature,
     addRosterPlayer, removeRosterPlayer, deleteGame, saveGame, setWhatsappGroupUrl,
     sendMessage, markRead, openOrCreateConversation,

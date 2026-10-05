@@ -4,27 +4,46 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { colors, spacing } from "../theme/theme";
 import { Avatar, HeaderLogo } from "../components/Shared";
+import { useLocale } from "../i18n/LocaleContext";
 
 export default function MessagesScreen({ navigation }) {
+  const { t } = useLocale();
   const { conversations, whatsappGroupUrl, blockedNames, unblockUser } = useApp();
 
   const handleManageBlocked = () => {
     if (blockedNames.length === 0) {
-      Alert.alert("No blocked users", "You haven't blocked anyone.");
+      Alert.alert(t("messages.noBlockedUsersTitle"), t("messages.noBlockedUsersBody"));
       return;
     }
     Alert.alert(
-      "Blocked users",
-      "Tap a name to unblock them.",
+      t("messages.blockedUsersTitle"),
+      t("messages.blockedUsersBody"),
       [
         ...blockedNames.map((name) => ({
-          text: `Unblock ${name}`,
+          text: t("messages.unblockAction", name),
           onPress: async () => {
             const { error } = await unblockUser(name);
-            if (error) Alert.alert("Couldn't unblock", error);
+            if (error) Alert.alert(t("messages.couldntUnblock"), error);
           },
         })),
-        { text: "Close", style: "cancel" },
+        { text: t("common.close"), style: "cancel" },
+      ]
+    );
+  };
+
+  const handleUnblock = (name) => {
+    Alert.alert(
+      t("messages.unblockTitle", name),
+      t("messages.unblockBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("messages.unblock"),
+          onPress: async () => {
+            const { error } = await unblockUser(name);
+            if (error) Alert.alert(t("messages.couldntUnblock"), error);
+          },
+        },
       ]
     );
   };
@@ -33,9 +52,9 @@ export default function MessagesScreen({ navigation }) {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <HeaderLogo size={26} />
-        <Text style={styles.title}>Messages</Text>
+        <Text style={styles.title}>{t("messages.title")}</Text>
         <TouchableOpacity onPress={handleManageBlocked} style={{ marginLeft: "auto" }}>
-          <Text style={styles.blockedLink}>Blocked ({blockedNames.length})</Text>
+          <Text style={styles.blockedLink}>{t("messages.blockedLink", blockedNames.length)}</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -46,18 +65,22 @@ export default function MessagesScreen({ navigation }) {
             <TouchableOpacity style={styles.waCard} onPress={() => Linking.openURL(whatsappGroupUrl)}>
               <View style={styles.waIcon}><Text style={{ fontSize: 20 }}>📢</Text></View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.waTitle}>Join the WhatsApp announcements group</Text>
-                <Text style={styles.waSub}>League news and updates from the admin team</Text>
+                <Text style={styles.waTitle}>{t("messages.joinWhatsappTitle")}</Text>
+                <Text style={styles.waSub}>{t("messages.joinWhatsappSub")}</Text>
               </View>
               <Text style={styles.waArrow}>›</Text>
             </TouchableOpacity>
           ) : null
         }
-        ListEmptyComponent={<Text style={styles.empty}>No messages yet. Message an organizer from a game you've booked.</Text>}
+        ListEmptyComponent={<Text style={styles.empty}>{t("messages.empty")}</Text>}
         renderItem={({ item }) => {
+          const blocked = blockedNames.includes(item.name);
           const last = item.messages[item.messages.length - 1];
           return (
-            <TouchableOpacity style={styles.row} onPress={() => navigation.navigate("Chat", { conversationId: item.id })}>
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => (blocked ? handleUnblock(item.name) : navigation.navigate("Chat", { conversationId: item.id }))}
+            >
               <Avatar name={item.name} size={44} />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <View style={styles.rowTop}>
@@ -65,9 +88,13 @@ export default function MessagesScreen({ navigation }) {
                   <Text style={styles.time}>{last.time}</Text>
                 </View>
                 <Text style={styles.game}>{item.game}</Text>
-                <Text style={styles.preview} numberOfLines={1}>{last.from === "me" ? "You: " : ""}{last.text}</Text>
+                {blocked ? (
+                  <Text style={styles.blockedBadge}>{t("messages.blockedBadge")}</Text>
+                ) : (
+                  <Text style={styles.preview} numberOfLines={1}>{last.from === "me" ? t("messages.youPrefix") : ""}{last.text}</Text>
+                )}
               </View>
-              {item.unread ? <View style={styles.dot} /> : null}
+              {!blocked && item.unread ? <View style={styles.dot} /> : null}
             </TouchableOpacity>
           );
         }}
@@ -93,5 +120,6 @@ const styles = StyleSheet.create({
   time: { fontSize: 11, color: colors.slate },
   game: { fontSize: 11, color: colors.turf, fontWeight: "600", marginTop: 2 },
   preview: { fontSize: 13, color: colors.slate, marginTop: 2 },
+  blockedBadge: { fontSize: 13, color: colors.slate, marginTop: 2, fontStyle: "italic" },
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.lime },
 });

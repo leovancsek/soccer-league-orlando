@@ -24,15 +24,36 @@ serve(async (req) => {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401 });
 
-    const { gameId, priceLabel, amountCents, gameTitle } = await req.json();
+    const { gameId, priceLabel, amountCents, gameTitle, discountCode } = await req.json();
     if (!gameId || !amountCents) {
       return new Response(JSON.stringify({ error: "gameId and amountCents are required" }), { status: 400 });
+    }
+
+    // Discounts are always recomputed server-side from the code itself —
+    // never trust a client-supplied discounted amount.
+    let finalAmountCents = amountCents;
+    let discountAmountCents = 0;
+    let discountCodeId = null;
+    if (discountCode) {
+      const { data: validation, error: validationError } = await supabaseClient
+        .rpc("validate_discount_code", { p_code: discountCode, p_amount_cents: amountCents })
+        .single();
+      if (validationError) throw validationError;
+      if (!validation.valid) {
+        return new Response(JSON.stringify({ error: validation.message }), { status: 400 });
+      }
+      finalAmountCents = validation.final_amount_cents;
+      discountAmountCents = validation.discount_amount_cents;
+      discountCodeId = validation.discount_code_id;
     }
 
     // Record a pending booking row before redirecting to Stripe.
     const { data: booking, error: bookingError } = await supabaseClient
       .from("bookings")
-      .insert({ game_id: gameId, user_id: user.id, status: "pending_payment", amount_charged: priceLabel })
+      .insert({
+        game_id: gameId, user_id: user.id, status: "pending_payment", amount_charged: priceLabel,
+        discount_code_id: discountCodeId, discount_amount_cents: discountAmountCents,
+      })
       .select()
       .single();
     if (bookingError) throw bookingError;
@@ -44,7 +65,7 @@ serve(async (req) => {
         price_data: {
           currency: "usd",
           product_data: { name: gameTitle || "Pickup game booking" },
-          unit_amount: amountCents,
+          unit_amount: finalAmountCents,
         },
         quantity: 1,
       }],
