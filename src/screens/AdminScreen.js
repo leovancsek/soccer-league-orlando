@@ -19,6 +19,9 @@ export default function AdminScreen({ navigation }) {
   const isSuperAdmin = !!profile?.is_super_admin;
   const [section, setSection] = useState("games");
   const [waInput, setWaInput] = useState(whatsappGroupUrl || "");
+  const [savingWa, setSavingWa] = useState(false);
+
+  useEffect(() => { setWaInput(whatsappGroupUrl || ""); }, [whatsappGroupUrl]);
   const [accounts, setAccounts] = useState([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [overridingId, setOverridingId] = useState(null);
@@ -186,6 +189,7 @@ export default function AdminScreen({ navigation }) {
     users: t("admin.secUsers"),
     waivers: t("admin.secWaivers"),
     discounts: t("admin.secDiscounts"),
+    announcements: t("admin.secAnnouncements"),
     features: t("admin.secFeatures"),
   };
 
@@ -198,7 +202,7 @@ export default function AdminScreen({ navigation }) {
         </View>
         <Text style={styles.sub}>{t("admin.subtitle")}</Text>
         <View style={styles.segment}>
-          {["games", "users", "waivers", "discounts", ...(isSuperAdmin ? ["features"] : [])].map((s) => (
+          {["games", "users", "waivers", "discounts", "announcements", ...(isSuperAdmin ? ["features"] : [])].map((s) => (
             <TouchableOpacity key={s} style={[styles.segBtn, section === s && styles.segBtnActive]} onPress={() => setSection(s)}>
               <Text style={[styles.segText, section === s && styles.segTextActive]}>{sectionLabels[s]}</Text>
             </TouchableOpacity>
@@ -501,7 +505,7 @@ export default function AdminScreen({ navigation }) {
           </View>
         )}
 
-        {section === "features" && isSuperAdmin && (
+        {section === "announcements" && (
           <View style={styles.waEditCard}>
             <Text style={styles.rosterTitle}>{t("admin.whatsappGroupTitle")}</Text>
             <Text style={styles.rosterSub}>{t("admin.whatsappGroupSub")}</Text>
@@ -514,10 +518,16 @@ export default function AdminScreen({ navigation }) {
               onChangeText={setWaInput}
             />
             <Button
-              title={t("common.save")}
+              title={savingWa ? "..." : t("common.save")}
               variant="turf"
+              disabled={savingWa}
               style={{ marginTop: 10 }}
-              onPress={() => setWhatsappGroupUrl(waInput.trim() || null)}
+              onPress={async () => {
+                setSavingWa(true);
+                const result = await setWhatsappGroupUrl(waInput.trim() || null);
+                setSavingWa(false);
+                if (result.error) Alert.alert(t("admin.couldntUpdate"), result.error);
+              }}
             />
           </View>
         )}

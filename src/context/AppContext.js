@@ -25,7 +25,7 @@ export function AppProvider({ children }) {
   const [features, setFeatures] = useState(initialFeatures);
   const [conversations, setConversations] = useState(initialConversations);
   const [myBookings, setMyBookings] = useState([]);
-  const [whatsappGroupUrl, setWhatsappGroupUrl] = useState(null);
+  const [whatsappGroupUrl, setWhatsappGroupUrlState] = useState(null);
   const [blockedNames, setBlockedNames] = useState([]);
 
   const loadBlocks = useCallback(async () => {
@@ -35,6 +35,27 @@ export function AppProvider({ children }) {
   }, [session?.user?.id]);
 
   useEffect(() => { loadBlocks(); }, [loadBlocks]);
+
+  // Persisted in app_settings (see migration 0012_app_settings.sql) —
+  // previously only in-memory state, so it silently reset on every app
+  // restart despite looking "saved" from the Admin screen.
+  const loadWhatsappGroupUrl = useCallback(async () => {
+    if (!session?.user) { setWhatsappGroupUrlState(null); return; }
+    const { data, error } = await supabase.from("app_settings").select("value").eq("key", "whatsapp_group_url").maybeSingle();
+    if (!error) setWhatsappGroupUrlState(data?.value || null);
+  }, [session?.user?.id]);
+
+  useEffect(() => { loadWhatsappGroupUrl(); }, [loadWhatsappGroupUrl]);
+
+  const setWhatsappGroupUrl = useCallback(async (url) => {
+    if (!session?.user) return { error: "Not signed in." };
+    const { error } = await supabase.from("app_settings").upsert({
+      key: "whatsapp_group_url", value: url, updated_by: session.user.id, updated_at: new Date().toISOString(),
+    });
+    if (error) return { error: error.message };
+    setWhatsappGroupUrlState(url);
+    return { ok: true };
+  }, [session?.user?.id]);
 
   // Required by App Store Review Guideline 1.2 (user-generated content
   // apps need report + block). Messaging is still client-side mock state
