@@ -15,6 +15,7 @@
       "bundleIdentifier": "com.soccerleagueorlando.app",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Used to upload a photo of the field when creating a game listing.",
+        "NSCameraUsageDescription": "Used to take your profile headshot with the front camera.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },

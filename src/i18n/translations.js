@@ -80,6 +80,14 @@ export const translations = {
     },
     days: { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" },
     language: { title: "Language", english: "English", spanish: "Español", portuguese: "Português (Brasil)" },
+    profile: {
+      headshotPromptTitle: "Take a headshot",
+      headshotPromptBody: "Center your face in the frame using the front camera. This photo is used to identify you to other players, so it must be an actual photo of you, not a picture of a picture.",
+      headshotPromptContinue: "Open camera",
+      cameraPermissionTitle: "Camera access needed",
+      cameraPermissionBody: "Allow camera access to take your profile headshot.",
+      couldntUpdatePhoto: "Couldn't update photo",
+    },
     common: {
       cancel: "Cancel",
       confirm: "Confirm",
@@ -363,6 +371,14 @@ export const translations = {
     },
     days: { mon: "Lun", tue: "Mar", wed: "Mié", thu: "Jue", fri: "Vie", sat: "Sáb", sun: "Dom" },
     language: { title: "Idioma", english: "English", spanish: "Español", portuguese: "Português (Brasil)" },
+    profile: {
+      headshotPromptTitle: "Toma una foto de tu rostro",
+      headshotPromptBody: "Centra tu rostro en el encuadre usando la cámara frontal. Esta foto se usa para identificarte ante otros jugadores, así que debe ser una foto real tuya, no una foto de una foto.",
+      headshotPromptContinue: "Abrir cámara",
+      cameraPermissionTitle: "Se necesita acceso a la cámara",
+      cameraPermissionBody: "Permite el acceso a la cámara para tomar tu foto de perfil.",
+      couldntUpdatePhoto: "No se pudo actualizar la foto",
+    },
     common: {
       cancel: "Cancelar",
       confirm: "Confirmar",
@@ -646,6 +662,14 @@ export const translations = {
     },
     days: { mon: "Seg", tue: "Ter", wed: "Qua", thu: "Qui", fri: "Sex", sat: "Sáb", sun: "Dom" },
     language: { title: "Idioma", english: "English", spanish: "Español", portuguese: "Português (Brasil)" },
+    profile: {
+      headshotPromptTitle: "Tire uma foto do seu rosto",
+      headshotPromptBody: "Centralize seu rosto no quadro usando a câmera frontal. Esta foto é usada para identificá-lo para outros jogadores, então deve ser uma foto real sua, não uma foto de uma foto.",
+      headshotPromptContinue: "Abrir câmera",
+      cameraPermissionTitle: "Acesso à câmera necessário",
+      cameraPermissionBody: "Permita o acesso à câmera para tirar sua foto de perfil.",
+      couldntUpdatePhoto: "Não foi possível atualizar a foto",
+    },
     common: {
       cancel: "Cancelar",
       confirm: "Confirmar",

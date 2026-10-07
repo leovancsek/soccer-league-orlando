@@ -33,14 +33,30 @@ export default function ProfileScreen() {
 
   const startEdit = () => { setForm(profile); setEditing(true); };
 
-  const pickAvatar = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  // Profile photos must be an actual headshot — taken live with the front
+  // (selfie) camera, never picked from the library — so every player's
+  // photo is a real, current, centered face shot. The square aspect crop
+  // forces the user to center their face in the frame before confirming.
+  const pickAvatar = () => {
+    Alert.alert(
+      t("profile.headshotPromptTitle"),
+      t("profile.headshotPromptBody"),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        { text: t("profile.headshotPromptContinue"), onPress: takeHeadshot },
+      ]
+    );
+  };
+
+  const takeHeadshot = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission needed", "Allow photo library access to update your profile picture.");
+      Alert.alert(t("profile.cameraPermissionTitle"), t("profile.cameraPermissionBody"));
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
+    const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
+      cameraType: ImagePicker.CameraType.front,
       quality: 0.7,
       allowsEditing: true,
       aspect: [1, 1],
@@ -66,7 +82,7 @@ export default function ProfileScreen() {
       const { error: saveError } = await updateProfile({ avatar_url });
       if (saveError) throw new Error(saveError);
     } catch (err) {
-      Alert.alert("Couldn't update photo", err.message);
+      Alert.alert(t("profile.couldntUpdatePhoto"), err.message);
     } finally {
       setUploadingAvatar(false);
     }
