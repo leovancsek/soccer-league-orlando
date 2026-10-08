@@ -22,9 +22,12 @@ export default function SignWaiverScreen({ navigation }) {
       );
       return;
     }
-    // tag1 lets smartwaiver-webhook match the signed waiver back to this
-    // user (see that Edge Function's comments for the exact field it reads).
-    await WebBrowser.openBrowserAsync(`${WAIVER_URL}?tag1=${session.user.id}`);
+    // auto_tag lets smartwaiver-webhook match the signed waiver back to
+    // this user (see that Edge Function's comments for the exact field it
+    // reads). Confirmed via Smartwaiver's own docs: the URL parameter is
+    // "auto_tag" (snake_case) -- "tag1" and "autoTag" (camelCase) are both
+    // silently ignored. https://support.smartwaiver.com/hc/en-us/articles/360057049791
+    await WebBrowser.openBrowserAsync(`${WAIVER_URL}?auto_tag=${session.user.id}`);
   };
 
   const checkStatus = async () => {
