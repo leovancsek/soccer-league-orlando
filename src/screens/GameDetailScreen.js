@@ -18,7 +18,8 @@ export default function GameDetailScreen({ route, navigation }) {
   const [discountCode, setDiscountCode] = useState("");
   if (!game) return null;
 
-  const left = game.spotsTotal - game.spotsFilled;
+  const reservableCap = game.reservableSlots ?? game.spotsTotal;
+  const left = reservableCap - game.spotsFilled;
   const full = left <= 0;
   const booked = myBookings.includes(game.id);
   const rosters = ROSTER_CONFIG[game.listingType || "casual"];

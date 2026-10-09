@@ -91,6 +91,9 @@ export default function GameFormScreen({ route, navigation }) {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [price, setPrice] = useState(existing?.price || "");
   const [slots, setSlots] = useState(String(existing?.spotsTotal || 10));
+  const [reservableSlots, setReservableSlots] = useState(
+    existing?.reservableSlots != null ? String(existing.reservableSlots) : ""
+  );
   const [level] = useState(existing?.level || "Intermediate");
   const [hasReferee, setHasReferee] = useState(!!existing?.hasReferee);
   const [hasCamera, setHasCamera] = useState(!!existing?.hasCamera);
@@ -155,11 +158,20 @@ export default function GameFormScreen({ route, navigation }) {
       ? { ...(existing?.pricing || {}), leagueFee: leagueFee || "$0", subFee: subFee || "$0" }
       : { ...(existing?.pricing || {}), dropInFee: dropInFee || "$0" };
 
+    const spotsTotal = Math.max(1, parseInt(slots) || 10, existing?.spotsFilled || 0);
+    // Defaults to the full total (no separate cap) when left blank, but can
+    // never exceed it or dip below however many are already booked.
+    const parsedReservable = parseInt(reservableSlots);
+    const reservableSlotsFinal = Math.min(
+      spotsTotal,
+      Math.max(existing?.spotsFilled || 0, isNaN(parsedReservable) ? spotsTotal : parsedReservable)
+    );
+
     saveGame(gameId, {
       title: title.trim(), format, venue: venue.trim(), address: address.trim(),
       fieldNumber: fieldNumber.trim(),
       date, day: dayShort, time, price: price.trim() || "$0",
-      spotsTotal: Math.max(1, parseInt(slots) || 10, existing?.spotsFilled || 0),
+      spotsTotal, reservableSlots: reservableSlotsFinal,
       level, listingType, pricing, image,
       hasReferee, hasCamera,
     });
@@ -288,6 +300,14 @@ export default function GameFormScreen({ route, navigation }) {
           <Field label={t("gameForm.displayPrice")} value={price} onChangeText={setPrice} placeholder={t("gameForm.pricePlaceholder")} style={{ flex: 1 }} />
           <Field label={t("gameForm.totalSlots")} value={slots} onChangeText={setSlots} keyboardType="number-pad" style={{ flex: 1 }} />
         </View>
+        <Field
+          label={t("gameForm.reservableSlots")}
+          value={reservableSlots}
+          onChangeText={setReservableSlots}
+          keyboardType="number-pad"
+          placeholder={t("gameForm.reservableSlotsPlaceholder")}
+        />
+        <Text style={styles.helperText}>{t("gameForm.reservableSlotsHelp")}</Text>
 
         <View style={styles.pricingCard}>
           <FieldLabel>{listingType === "league" ? t("gameForm.playerCostsLeague") : t("gameForm.playerCostsCasual")}</FieldLabel>
@@ -349,4 +369,5 @@ const styles = StyleSheet.create({
   pricingCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, padding: 14, marginBottom: 16 },
   extraRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   extraLabel: { fontSize: 14, fontWeight: "600", color: colors.ink },
+  helperText: { fontSize: 11.5, color: colors.slate, marginTop: -10, marginBottom: 16, lineHeight: 16 },
 });

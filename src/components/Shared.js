@@ -81,7 +81,8 @@ export function Button({ title, onPress, variant = "primary", style, disabled })
 }
 
 export function TicketCard({ game, onPress }) {
-  const left = game.spotsTotal - game.spotsFilled;
+  const reservableCap = game.reservableSlots ?? game.spotsTotal;
+  const left = reservableCap - game.spotsFilled;
   const full = left <= 0;
   const low = left <= 2 && left > 0;
   return (
@@ -104,7 +105,7 @@ export function TicketCard({ game, onPress }) {
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={[styles.spotsNum, (low || full) && { color: colors.warn }]}>
-              {full ? "FULL" : `${left}/${game.spotsTotal}`}
+              {full ? "FULL" : `${left}/${reservableCap}`}
             </Text>
             <Text style={styles.spotsLbl}>{full ? "no spots" : "spots left"}</Text>
           </View>

@@ -12,6 +12,15 @@ function initials(name) {
   return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 }
 
+// spotsTotal is the venue's overall field capacity (e.g. a 24-player full
+// field), which can be larger than how many of those slots are actually
+// open for online/casual reservation (the rest might be reserved for a
+// standing league group, etc). reservableSlots is that smaller cap;
+// defaults to spotsTotal for games that don't set it.
+function reservableCap(game) {
+  return game.reservableSlots ?? game.spotsTotal;
+}
+
 // Parses a display price like "$15" or "$45" into integer cents for Stripe.
 function priceToCents(priceLabel) {
   const n = parseFloat(String(priceLabel).replace(/[^0-9.]/g, "")) || 0;
@@ -88,7 +97,7 @@ export function AppProvider({ children }) {
   }, [session?.user?.id, loadBlocks]);
 
   const bookGame = useCallback((gameId) => {
-    setGames((gs) => gs.map((g) => (g.id === gameId ? { ...g, spotsFilled: Math.min(g.spotsTotal, g.spotsFilled + 1) } : g)));
+    setGames((gs) => gs.map((g) => (g.id === gameId ? { ...g, spotsFilled: Math.min(reservableCap(g), g.spotsFilled + 1) } : g)));
     setMyBookings((b) => (b.includes(gameId) ? b : [...b, gameId]));
   }, []);
 
@@ -120,7 +129,7 @@ export function AppProvider({ children }) {
 
     // Reserve the slot locally right away so the UI reflects it while the
     // user is in the Stripe browser tab.
-    setGames((gs) => gs.map((g) => (g.id === game.id ? { ...g, spotsFilled: Math.min(g.spotsTotal, g.spotsFilled + 1) } : g)));
+    setGames((gs) => gs.map((g) => (g.id === game.id ? { ...g, spotsFilled: Math.min(reservableCap(g), g.spotsFilled + 1) } : g)));
     setMyBookings((b) => (b.includes(game.id) ? b : [...b, game.id]));
 
     const result = await WebBrowser.openAuthSessionAsync(data.url, "soccerleagueorlando://payment-success");
@@ -148,12 +157,12 @@ export function AppProvider({ children }) {
 
   const addRosterPlayer = useCallback((gameId, rosterKey, name) => {
     setGames((gs) => gs.map((g) => {
-      if (g.id !== gameId || g.spotsFilled >= g.spotsTotal) return g;
+      if (g.id !== gameId || g.spotsFilled >= reservableCap(g)) return g;
       return {
         ...g,
         [rosterKey]: [...g[rosterKey], name],
         players: [...g.players, initials(name)],
-        spotsFilled: Math.min(g.spotsTotal, g.spotsFilled + 1),
+        spotsFilled: Math.min(reservableCap(g), g.spotsFilled + 1),
       };
     }));
   }, []);

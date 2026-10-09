@@ -226,8 +226,9 @@ export default function AdminScreen({ navigation }) {
               onPress={() => navigation.navigate("GameForm", { gameId: null })}
             />
             {games.map((g) => {
-              const left = g.spotsTotal - g.spotsFilled;
-              const pct = Math.min(100, Math.round((g.spotsFilled / g.spotsTotal) * 100));
+              const reservableCap = g.reservableSlots ?? g.spotsTotal;
+              const left = reservableCap - g.spotsFilled;
+              const pct = Math.min(100, Math.round((g.spotsFilled / reservableCap) * 100));
               const rosters = ROSTER_CONFIG[g.listingType || "casual"];
               return (
                 <View key={g.id} style={styles.gameCard}>
@@ -246,11 +247,14 @@ export default function AdminScreen({ navigation }) {
                     <View style={{ marginTop: 10 }}>
                       <View style={styles.slotsLabelRow}>
                         <Text style={styles.slotsLabel}>{t("admin.slotsFilled")}</Text>
-                        <Text style={styles.slotsValue}>{g.spotsFilled}/{g.spotsTotal} · {t("admin.available", left)}</Text>
+                        <Text style={styles.slotsValue}>{g.spotsFilled}/{reservableCap} · {t("admin.available", left)}</Text>
                       </View>
                       <View style={styles.track}>
                         <View style={[styles.fill, { width: `${pct}%`, backgroundColor: left <= 0 ? colors.warn : colors.turf }]} />
                       </View>
+                      {g.reservableSlots != null && g.reservableSlots !== g.spotsTotal && (
+                        <Text style={styles.reservableNote}>{t("admin.fieldCapacityNote", g.spotsTotal)}</Text>
+                      )}
                     </View>
 
                     {rosters.map((r) => (
@@ -581,6 +585,7 @@ const styles = StyleSheet.create({
   slotsLabel: { fontSize: 11.5, color: colors.slate, fontWeight: "600" },
   slotsValue: { fontSize: 11.5, fontWeight: "700", color: colors.ink },
   track: { height: 7, borderRadius: 6, backgroundColor: colors.line, marginTop: 5, overflow: "hidden" },
+  reservableNote: { fontSize: 10.5, color: colors.slate, marginTop: 4, fontStyle: "italic" },
   fill: { height: "100%", borderRadius: 6 },
   rosterGroup: { marginTop: 14, paddingTop: 12, borderTopWidth: 1.5, borderColor: colors.line, borderStyle: "dashed" },
   rosterHead: { flexDirection: "row", justifyContent: "space-between" },
