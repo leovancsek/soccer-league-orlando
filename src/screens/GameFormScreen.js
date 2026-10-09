@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, ScrollView, TouchableOpacity, Image, StyleSheet, Alert, Platform } from "react-native";
+import { View, Text, TextInput, ScrollView, TouchableOpacity, Image, StyleSheet, Alert, Platform, Switch } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -7,6 +7,9 @@ import { useApp } from "../context/AppContext";
 import { colors, spacing, radius } from "../theme/theme";
 import { Button } from "../components/Shared";
 import { useLocale } from "../i18n/LocaleContext";
+import { VENUES } from "../data/seedData";
+
+const CUSTOM_VENUE = "__custom__";
 
 const FORMATS = ["5v5", "7v7", "9v9", "11v11"];
 // Skill level is temporarily hidden from this form — kept in state/save
@@ -32,6 +35,41 @@ function parseExistingDate(dateStr) {
   return isNaN(parsed.getTime()) ? new Date() : parsed;
 }
 
+// Formats a Date's time as "7:00 PM" — independent of device locale, since
+// this exact string is what gets stored and displayed everywhere else.
+function formatGameTime(d) {
+  let hours = d.getHours();
+  const minutes = d.getMinutes();
+  const suffix = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${String(minutes).padStart(2, "0")} ${suffix}`;
+}
+
+// Existing games store a time string like "19:00" (legacy) or "7:00 PM" —
+// best-effort parse to pre-fill the picker; default to 7:00 PM if it fails.
+function parseExistingTime(timeStr) {
+  const fallback = new Date();
+  fallback.setHours(19, 0, 0, 0);
+  if (!timeStr) return fallback;
+  const ampmMatch = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (ampmMatch) {
+    let h = parseInt(ampmMatch[1], 10);
+    const m = parseInt(ampmMatch[2], 10);
+    if (/pm/i.test(ampmMatch[3]) && h !== 12) h += 12;
+    if (/am/i.test(ampmMatch[3]) && h === 12) h = 0;
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    return d;
+  }
+  const h24Match = timeStr.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (h24Match) {
+    const d = new Date();
+    d.setHours(parseInt(h24Match[1], 10), parseInt(h24Match[2], 10), 0, 0);
+    return d;
+  }
+  return fallback;
+}
+
 export default function GameFormScreen({ route, navigation }) {
   const { t } = useLocale();
   const { gameId } = route.params || {};
@@ -44,17 +82,50 @@ export default function GameFormScreen({ route, navigation }) {
   const [format, setFormat] = useState(existing?.format || "5v5");
   const [venue, setVenue] = useState(existing?.venue || "");
   const [address, setAddress] = useState(existing?.address || "");
+  const existingKnownVenue = VENUES.find((v) => v.name === existing?.venue) || null;
+  const [knownVenue, setKnownVenue] = useState(existingKnownVenue);
+  const [fieldNumber, setFieldNumber] = useState(existing?.fieldNumber || "");
   const [dateObj, setDateObj] = useState(parseExistingDate(existing?.date));
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [time, setTime] = useState(existing?.time || "");
+  const [timeObj, setTimeObj] = useState(parseExistingTime(existing?.time));
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [price, setPrice] = useState(existing?.price || "");
   const [slots, setSlots] = useState(String(existing?.spotsTotal || 10));
   const [level] = useState(existing?.level || "Intermediate");
+  const [hasReferee, setHasReferee] = useState(!!existing?.hasReferee);
+  const [hasCamera, setHasCamera] = useState(!!existing?.hasCamera);
 
   const [dropInFee, setDropInFee] = useState(existing?.pricing?.dropInFee || "");
-  const [monthlyFee, setMonthlyFee] = useState(existing?.pricing?.monthlyFee || "");
   const [leagueFee, setLeagueFee] = useState(existing?.pricing?.leagueFee || "");
   const [subFee, setSubFee] = useState(existing?.pricing?.subFee || "");
+
+  const pickVenue = () => {
+    Alert.alert(
+      t("gameForm.venueName"),
+      undefined,
+      [
+        ...VENUES.map((v) => ({
+          text: v.name,
+          onPress: () => {
+            setKnownVenue(v);
+            setVenue(v.name);
+            setAddress(v.address);
+            setFieldNumber("1");
+          },
+        })),
+        {
+          text: t("gameForm.addNewLocation"),
+          onPress: () => {
+            setKnownVenue(null);
+            setVenue("");
+            setAddress("");
+            setFieldNumber("");
+          },
+        },
+        { text: t("common.cancel"), style: "cancel" },
+      ]
+    );
+  };
 
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -73,21 +144,24 @@ export default function GameFormScreen({ route, navigation }) {
   };
 
   const handleSave = () => {
-    if (!title.trim() || !venue.trim() || !time.trim()) {
+    if (!title.trim() || !venue.trim()) {
       Alert.alert(t("gameForm.missingInfoTitle"), t("gameForm.missingInfoBody"));
       return;
     }
     const date = formatGameDate(dateObj);
     const dayShort = date.slice(0, 3).toUpperCase();
+    const time = formatGameTime(timeObj);
     const pricing = listingType === "league"
       ? { ...(existing?.pricing || {}), leagueFee: leagueFee || "$0", subFee: subFee || "$0" }
-      : { ...(existing?.pricing || {}), dropInFee: dropInFee || "$0", monthlyFee: monthlyFee || "$0" };
+      : { ...(existing?.pricing || {}), dropInFee: dropInFee || "$0" };
 
     saveGame(gameId, {
       title: title.trim(), format, venue: venue.trim(), address: address.trim(),
-      date, day: dayShort, time: time.trim(), price: price.trim() || "$0",
+      fieldNumber: fieldNumber.trim(),
+      date, day: dayShort, time, price: price.trim() || "$0",
       spotsTotal: Math.max(1, parseInt(slots) || 10, existing?.spotsFilled || 0),
       level, listingType, pricing, image,
+      hasReferee, hasCamera,
     });
     navigation.goBack();
   };
@@ -95,6 +169,11 @@ export default function GameFormScreen({ route, navigation }) {
   const onDateChange = (event, selected) => {
     setShowDatePicker(Platform.OS === "ios");
     if (selected) setDateObj(selected);
+  };
+
+  const onTimeChange = (event, selected) => {
+    setShowTimePicker(Platform.OS === "ios");
+    if (selected) setTimeObj(selected);
   };
 
   return (
@@ -134,8 +213,41 @@ export default function GameFormScreen({ route, navigation }) {
           ))}
         </View>
 
-        <Field label={t("gameForm.venueName")} value={venue} onChangeText={setVenue} placeholder={t("gameForm.venuePlaceholder")} />
-        <Field label={t("gameForm.address")} value={address} onChangeText={setAddress} placeholder={t("gameForm.addressPlaceholder")} />
+        <FieldLabel>{t("gameForm.venueName")}</FieldLabel>
+        <TouchableOpacity style={styles.input} onPress={pickVenue}>
+          <Text style={{ color: venue ? colors.ink : colors.slate, fontSize: 14 }}>{venue || t("gameForm.venuePlaceholder")}</Text>
+        </TouchableOpacity>
+        <View style={{ height: 16 }} />
+        <Field
+          label={t("gameForm.address")}
+          value={address}
+          onChangeText={setAddress}
+          placeholder={t("gameForm.addressPlaceholder")}
+          editable={!knownVenue}
+          style={knownVenue ? { opacity: 0.7 } : undefined}
+        />
+
+        <FieldLabel>{t("gameForm.fieldNumber")}</FieldLabel>
+        {knownVenue ? (
+          <View style={styles.typeToggle}>
+            {Array.from({ length: knownVenue.fieldCount }, (_, i) => String(i + 1)).map((n) => (
+              <TouchableOpacity key={n} style={[styles.typeBtn, fieldNumber === n && styles.typeBtnActive]} onPress={() => setFieldNumber(n)}>
+                <Text style={[styles.typeBtnText, fieldNumber === n && styles.typeBtnTextActive]}>{n}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : (
+          <View style={{ marginBottom: 16 }}>
+            <TextInput
+              style={styles.input}
+              placeholderTextColor={colors.slate}
+              value={fieldNumber}
+              onChangeText={setFieldNumber}
+              placeholder={t("gameForm.fieldNumberPlaceholder")}
+            />
+          </View>
+        )}
+
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1, marginBottom: 16 }}>
             <FieldLabel>{t("gameForm.date")}</FieldLabel>
@@ -143,7 +255,12 @@ export default function GameFormScreen({ route, navigation }) {
               <Text style={{ color: colors.ink, fontSize: 14 }}>{formatGameDate(dateObj)}</Text>
             </TouchableOpacity>
           </View>
-          <Field label={t("gameForm.time")} value={time} onChangeText={setTime} placeholder={t("gameForm.timePlaceholder")} style={{ flex: 1 }} />
+          <View style={{ flex: 1, marginBottom: 16 }}>
+            <FieldLabel>{t("gameForm.time")}</FieldLabel>
+            <TouchableOpacity style={styles.input} onPress={() => setShowTimePicker(true)}>
+              <Text style={{ color: colors.ink, fontSize: 14 }}>{formatGameTime(timeObj)}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         {showDatePicker && (
           <DateTimePicker
@@ -155,6 +272,17 @@ export default function GameFormScreen({ route, navigation }) {
         )}
         {showDatePicker && Platform.OS === "ios" && (
           <Button title={t("common.done")} variant="outline" style={{ marginBottom: 16 }} onPress={() => setShowDatePicker(false)} />
+        )}
+        {showTimePicker && (
+          <DateTimePicker
+            value={timeObj}
+            mode="time"
+            display={Platform.OS === "ios" ? "spinner" : "default"}
+            onChange={onTimeChange}
+          />
+        )}
+        {showTimePicker && Platform.OS === "ios" && (
+          <Button title={t("common.done")} variant="outline" style={{ marginBottom: 16 }} onPress={() => setShowTimePicker(false)} />
         )}
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Field label={t("gameForm.displayPrice")} value={price} onChangeText={setPrice} placeholder={t("gameForm.pricePlaceholder")} style={{ flex: 1 }} />
@@ -169,11 +297,20 @@ export default function GameFormScreen({ route, navigation }) {
               <Field label={t("gameForm.subFeeLabel")} value={subFee} onChangeText={setSubFee} placeholder={t("gameForm.subFeePlaceholder")} />
             </>
           ) : (
-            <>
-              <Field label={t("gameForm.dropInFeeLabel")} value={dropInFee} onChangeText={setDropInFee} placeholder={t("gameForm.dropInFeePlaceholder")} />
-              <Field label={t("gameForm.monthlyFeeLabel")} value={monthlyFee} onChangeText={setMonthlyFee} placeholder={t("gameForm.monthlyFeePlaceholder")} />
-            </>
+            <Field label={t("gameForm.dropInFeeLabel")} value={dropInFee} onChangeText={setDropInFee} placeholder={t("gameForm.dropInFeePlaceholder")} />
           )}
+        </View>
+
+        <View style={styles.pricingCard}>
+          <FieldLabel>{t("gameForm.extrasTitle")}</FieldLabel>
+          <View style={styles.extraRow}>
+            <Text style={styles.extraLabel}>🧑‍⚖️ {t("gameForm.refereeLabel")}</Text>
+            <Switch value={hasReferee} onValueChange={setHasReferee} trackColor={{ true: colors.turf }} />
+          </View>
+          <View style={[styles.extraRow, { borderTopWidth: 1, borderColor: colors.line, marginTop: 10, paddingTop: 10 }]}>
+            <Text style={styles.extraLabel}>🎥 {t("gameForm.cameraLabel")}</Text>
+            <Switch value={hasCamera} onValueChange={setHasCamera} trackColor={{ true: colors.turf }} />
+          </View>
         </View>
 
         <Button title={existing ? t("gameForm.saveChanges") : t("gameForm.publishListing")} onPress={handleSave} style={{ marginTop: 8 }} />
@@ -210,4 +347,6 @@ const styles = StyleSheet.create({
   typeBtnText: { fontSize: 13, fontWeight: "700", color: colors.slate },
   typeBtnTextActive: { color: "#fff" },
   pricingCard: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 14, padding: 14, marginBottom: 16 },
+  extraRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  extraLabel: { fontSize: 14, fontWeight: "600", color: colors.ink },
 });

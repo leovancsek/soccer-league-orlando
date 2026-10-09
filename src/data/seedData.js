@@ -1,13 +1,20 @@
 export const ROSTER_CONFIG = {
   casual: [
     { key: "dropIns", label: "Drop-in players", sub: "One-off, pay per game", priceKey: "dropInFee", unit: "/game" },
-    { key: "monthlyPlayers", label: "Regular players", sub: "Monthly payment, same weekly slot", priceKey: "monthlyFee", unit: "/mo" },
   ],
   league: [
     { key: "leaguePlayers", label: "League players", sub: "Full season roster", priceKey: "leagueFee", unit: "/season" },
     { key: "substitutes", label: "Substitutes", sub: "Fill in for a single match as needed", priceKey: "subFee", unit: "/game" },
   ],
 };
+
+// Known venues selectable in the game form. R9 Ronaldo Academy is the
+// league's own facility -- picking it auto-fills the address and offers
+// its 3 numbered fields; any other venue is entered freely via
+// "+ Add new location".
+export const VENUES = [
+  { name: "R9 Ronaldo Academy", address: "3516 President Barack Obama Pkwy, Orlando, FL 32811", fieldCount: 3 },
+];
 
 export const initialGames = [
   {
@@ -16,8 +23,8 @@ export const initialGames = [
     date: "Tue, Aug 25", time: "20:00", price: "$15", spotsTotal: 10, spotsFilled: 7,
     level: "Intermediate", organizer: { name: "Marcus Webb", rating: 4.8 },
     players: ["MW", "JR", "LC", "JP", "SA", "TN", "KB"],
-    dropIns: [], monthlyPlayers: [], leaguePlayers: [], substitutes: [],
-    pricing: { dropInFee: "$15", monthlyFee: "$45", leagueFee: "$150", subFee: "$20" },
+    dropIns: [], leaguePlayers: [], substitutes: [],
+    pricing: { dropInFee: "$15", leagueFee: "$150", subFee: "$20" },
     image: null,
   },
   {
@@ -26,8 +33,8 @@ export const initialGames = [
     date: "Sun, Aug 30", time: "09:30", price: "$12", spotsTotal: 14, spotsFilled: 13,
     level: "All levels", organizer: { name: "Camila Ruiz", rating: 4.9 },
     players: ["CR", "MP", "AG", "FT", "JL", "BQ", "NV", "OS", "PW", "QD", "RE", "SF", "UH"],
-    dropIns: [], monthlyPlayers: [], leaguePlayers: [], substitutes: [],
-    pricing: { dropInFee: "$12", monthlyFee: "$36", leagueFee: "$150", subFee: "$20" },
+    dropIns: [], leaguePlayers: [], substitutes: [],
+    pricing: { dropInFee: "$12", leagueFee: "$150", subFee: "$20" },
     image: null,
   },
   {
@@ -36,8 +43,8 @@ export const initialGames = [
     date: "Wed, Aug 26", time: "19:00", price: "$18", spotsTotal: 22, spotsFilled: 9,
     level: "Advanced", organizer: { name: "Tom Ibarra", rating: 4.6 },
     players: ["TI", "GH", "MZ", "LK", "VC", "XB", "YN", "QP", "RS"],
-    dropIns: [], monthlyPlayers: [], leaguePlayers: [], substitutes: [],
-    pricing: { dropInFee: "$18", monthlyFee: "$54", leagueFee: "$150", subFee: "$20" },
+    dropIns: [], leaguePlayers: [], substitutes: [],
+    pricing: { dropInFee: "$18", leagueFee: "$150", subFee: "$20" },
     image: null,
   },
   {
@@ -46,8 +53,8 @@ export const initialGames = [
     date: "Fri, Aug 28", time: "21:00", price: "$10", spotsTotal: 10, spotsFilled: 4,
     level: "Beginner friendly", organizer: { name: "Lucía Méndez", rating: 5.0 },
     players: ["LM", "AC", "BD", "EF"],
-    dropIns: [], monthlyPlayers: [], leaguePlayers: [], substitutes: [],
-    pricing: { dropInFee: "$10", monthlyFee: "$30", leagueFee: "$150", subFee: "$20" },
+    dropIns: [], leaguePlayers: [], substitutes: [],
+    pricing: { dropInFee: "$10", leagueFee: "$150", subFee: "$20" },
     image: null,
   },
   {
@@ -56,8 +63,8 @@ export const initialGames = [
     date: "Thu, Aug 27", time: "18:30", price: "$12", spotsTotal: 14, spotsFilled: 14,
     level: "Intermediate", organizer: { name: "Nico Alvarez", rating: 4.7 },
     players: ["NA", "OB", "PC", "QD", "RE", "SF", "TG", "UH", "VI", "WJ", "XK", "YL", "ZM", "AN"],
-    dropIns: [], monthlyPlayers: [], leaguePlayers: [], substitutes: [],
-    pricing: { dropInFee: "$12", monthlyFee: "$36", leagueFee: "$150", subFee: "$20" },
+    dropIns: [], leaguePlayers: [], substitutes: [],
+    pricing: { dropInFee: "$12", leagueFee: "$150", subFee: "$20" },
     image: null,
   },
 ];

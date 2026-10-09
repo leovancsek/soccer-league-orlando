@@ -94,7 +94,13 @@ export function TicketCard({ game, onPress }) {
               {game.format}{game.listingType === "league" ? " · League" : ""}
             </Badge>
             <Text style={styles.title}>{game.title}</Text>
-            <Text style={styles.muted}>📍 {game.venue}</Text>
+            <Text style={styles.muted}>📍 {game.venue}{game.fieldNumber ? ` · Field ${game.fieldNumber}` : ""}</Text>
+            {(game.hasReferee || game.hasCamera) && (
+              <View style={styles.extrasRow}>
+                {game.hasReferee && <Text style={styles.extraIcon}>🧑‍⚖️</Text>}
+                {game.hasCamera && <Text style={styles.extraIcon}>🎥</Text>}
+              </View>
+            )}
           </View>
           <View style={{ alignItems: "flex-end" }}>
             <Text style={[styles.spotsNum, (low || full) && { color: colors.warn }]}>
@@ -134,6 +140,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between" },
   title: { fontSize: 16, fontWeight: "700", color: colors.ink },
   muted: { color: colors.slate, fontSize: 12.5, marginTop: 3 },
+  extrasRow: { flexDirection: "row", gap: 6, marginTop: 4 },
+  extraIcon: { fontSize: 13 },
   spotsNum: { fontWeight: "700", fontSize: 15, color: colors.ink },
   spotsLbl: { fontSize: 10, color: colors.slate, textTransform: "uppercase" },
   metaRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: colors.line, borderStyle: "dashed" },
